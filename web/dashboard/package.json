@@ -25,19 +25,35 @@
     "prepare": "husky"
   },
   "devDependencies": {
+    "@chromatic-com/storybook": "3",
     "@eslint/js": "^10.0.1",
+    "@storybook/addon-essentials": "8.6.18",
+    "@storybook/addon-onboarding": "8.6.18",
+    "@storybook/blocks": "8.6.18",
+    "@storybook/experimental-addon-test": "8.6.18",
+    "@storybook/react": "8.6.18",
+    "@storybook/react-vite": "8.6.18",
+    "@storybook/test": "8.6.18",
     "@typescript-eslint/eslint-plugin": "^8.59.4",
     "@typescript-eslint/parser": "^8.59.4",
+    "@vitejs/plugin-react": "^6.0.2",
+    "@vitest/browser": "3.0.0",
+    "@vitest/coverage-v8": "3.0.0",
     "eslint": "^10.4.0",
     "eslint-config-prettier": "^10.1.8",
     "eslint-plugin-jsx-a11y": "^6.10.2",
     "eslint-plugin-prettier": "^5.5.5",
     "eslint-plugin-react": "^7.37.5",
     "eslint-plugin-react-hooks": "^7.1.1",
+    "eslint-plugin-storybook": "^0.11.4",
     "globals": "^17.6.0",
     "husky": "^8.0.0",
     "lint-staged": "^17.0.5",
-    "prettier": "^3.8.3"
+    "playwright": "^1.60.0",
+    "prettier": "^3.8.3",
+    "storybook": "8.6.18",
+    "vite": "^8.0.14",
+    "vitest": "3.0.0"
   },
   "lint-staged": {
     "*.{ts,tsx}": [
@@ -46,6 +62,11 @@
     ],
     "*.{json,md,scss,yml}": [
       "prettier --write"
+    ]
+  },
+  "eslintConfig": {
+    "extends": [
+      "plugin:storybook/recommended"
     ]
   }
 }

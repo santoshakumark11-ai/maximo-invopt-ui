@@ -55,7 +55,7 @@ export default [
 
   // Node.js config files (vite.config.ts, vitest.config.ts, etc.)
   {
-    files: ['*.config.{ts,js,mjs,cjs}', 'e2e/**/*.{ts,js}'],
+    files: ['*.{config,workspace}.{ts,js,mjs,cjs}', 'e2e/**/*.{ts,js}'],
     languageOptions: {
       globals: {
         ...globals.node,
