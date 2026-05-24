@@ -18,15 +18,21 @@
     "test:coverage": "vitest run --coverage",
     "e2e": "playwright test",
     "e2e:install": "playwright install --with-deps",
-    "codegen": "openapi-typescript-codegen --input $OPENAPI_URL --output src/api/generated --client fetch --useOptions --useUnionTypes",
+    "codegen": "node node_modules/openapi-typescript-codegen/dist/index.js --input %OPENAPI_URL% --output src/api/generated --client fetch --useOptions --useUnionTypes",
     "storybook": "storybook dev -p 6006",
     "build-storybook": "storybook build",
     "lhci": "lhci collect && lhci assert",
-    "prepare": "husky"
+    "prepare": "husky",
+    "test:e2e": "playwright test",
+    "test:e2e:ui": "playwright test --ui",
+    "msw:init": "msw init public/ --save"
   },
   "devDependencies": {
+    "@axe-core/playwright": "^4",
     "@chromatic-com/storybook": "3",
     "@eslint/js": "^10.0.1",
+    "@lhci/cli": "^0.15.1",
+    "@playwright/test": "^1.60.0",
     "@storybook/addon-essentials": "8.6.18",
     "@storybook/addon-onboarding": "8.6.18",
     "@storybook/blocks": "8.6.18",
@@ -34,11 +40,16 @@
     "@storybook/react": "8.6.18",
     "@storybook/react-vite": "8.6.18",
     "@storybook/test": "8.6.18",
+    "@testing-library/jest-dom": "^6.5.0",
+    "@testing-library/react": "^14.3.1",
+    "@testing-library/user-event": "^14.6.1",
+    "@types/react": "^18",
+    "@types/react-dom": "^18",
     "@typescript-eslint/eslint-plugin": "^8.59.4",
     "@typescript-eslint/parser": "^8.59.4",
-    "@vitejs/plugin-react": "^6.0.2",
-    "@vitest/browser": "3.0.0",
+    "@vitejs/plugin-react": "^4.7.0",
     "@vitest/coverage-v8": "3.0.0",
+    "axe-core": "^4",
     "eslint": "^10.4.0",
     "eslint-config-prettier": "^10.1.8",
     "eslint-plugin-jsx-a11y": "^6.10.2",
@@ -48,12 +59,18 @@
     "eslint-plugin-storybook": "^0.11.4",
     "globals": "^17.6.0",
     "husky": "^8.0.0",
+    "jsdom": "^29.1.1",
     "lint-staged": "^17.0.5",
+    "msw": "^2.14.6",
+    "openapi-typescript-codegen": "^0.30.0",
     "playwright": "^1.60.0",
     "prettier": "^3.8.3",
+    "rollup-plugin-visualizer": "^7.0.1",
+    "sass": "^1.100.0",
     "storybook": "8.6.18",
-    "vite": "^8.0.14",
-    "vitest": "3.0.0"
+    "typescript": "~5",
+    "vite": "^5.4.21",
+    "vitest": "1.6.1"
   },
   "lint-staged": {
     "*.{ts,tsx}": [
@@ -67,6 +84,27 @@
   "eslintConfig": {
     "extends": [
       "plugin:storybook/recommended"
+    ]
+  },
+  "dependencies": {
+    "@carbon/charts": "^1.27.11",
+    "@carbon/charts-react": "^1.27.11",
+    "@carbon/icons-react": "^11.81.0",
+    "@carbon/react": "^1.108.0",
+    "@tanstack/react-query": "^5.100.14",
+    "@tanstack/react-virtual": "^3",
+    "clsx": "^2.1.1",
+    "oidc-client-ts": "^3.5.0",
+    "react": "^18",
+    "react-dom": "^18",
+    "react-hook-form": "^7",
+    "react-intl": "^6.8.9",
+    "react-router-dom": "^6.30.3",
+    "zod": "^3"
+  },
+  "msw": {
+    "workerDirectory": [
+      "public"
     ]
   }
 }

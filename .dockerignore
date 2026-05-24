@@ -1,0 +1,14 @@
+node_modules
+.pnpm-store
+dist
+.git
+.gitignore
+*.md
+web/dashboard/playwright-report
+web/dashboard/test-results
+web/dashboard/lhci
+web/dashboard/.storybook
+web/dashboard/e2e
+web/dashboard/src/**/*.test.*
+web/dashboard/src/**/*.spec.*
+web/dashboard/src/test

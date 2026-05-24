@@ -1,0 +1,15 @@
+# Core
+fastapi==0.111.1
+uvicorn[standard]==0.30.1
+
+# HTTP client (async, used for Maximo OSLC calls)
+httpx==0.27.0
+
+# JWT — python-jose with cryptography backend
+python-jose[cryptography]==3.3.0
+
+# Settings via .env
+pydantic-settings==2.3.4
+
+# Pydantic v2 (pulled by fastapi, pinned for reproducibility)
+pydantic==2.7.4

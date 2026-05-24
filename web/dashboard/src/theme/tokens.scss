@@ -1,0 +1,24 @@
+// tokens.scss — domain colour tokens used by badges, chart series and KpiCard accents.
+//
+// Carbon's built-in White theme tokens (--cds-background, --cds-layer-01, etc.)
+// are injected globally by `@use '@carbon/react'` in styles.scss.
+// The @carbon/themes @use was removed from here because Sass cannot resolve
+// node_modules packages when processing CSS Modules transitively via @use.
+// Custom theme token overrides belong in styles.scss instead.
+
+// Domain colour tokens — used by badges and chart series
+$status-new: #1e2761;
+$status-pending: #d97706;
+$status-approved: #00a896;
+$status-applied: #1f9d55;
+$status-rejected: #c0392b;
+
+$criticality-high: #c0392b;
+$criticality-med: #c89500;
+$criticality-low: #1f9d55;
+
+// KpiCard accent border colours
+$accent-teal: #00a896;
+$accent-navy: #1e2761;
+$accent-gold: #c89500;
+$accent-red: #c0392b;

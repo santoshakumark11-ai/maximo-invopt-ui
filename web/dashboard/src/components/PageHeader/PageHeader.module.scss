@@ -1,0 +1,13 @@
+@use '../../theme/tokens' as t;
+
+.wrapper {
+  border-bottom: 1px solid t.$accent-navy;
+}
+
+.subtitle {
+  padding: 0.5rem 1rem;
+  font-size: 0.875rem;
+  color: var(--cds-text-secondary);
+  background: var(--cds-layer-01);
+  margin: 0;
+}

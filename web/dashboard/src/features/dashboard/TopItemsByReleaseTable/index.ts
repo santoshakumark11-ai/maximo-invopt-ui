@@ -1,0 +1,1 @@
+export { TopItemsByReleaseTable } from './TopItemsByReleaseTable';

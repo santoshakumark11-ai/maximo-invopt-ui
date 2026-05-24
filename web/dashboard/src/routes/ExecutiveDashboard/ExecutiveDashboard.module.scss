@@ -1,0 +1,10 @@
+.page {
+  padding: 1.5rem 1rem;
+  min-height: calc(100vh - 3rem);
+  background: var(--cds-background);
+
+  // Row gap between grid rows
+  :global(.cds--grid) {
+    row-gap: 1.5rem;
+  }
+}

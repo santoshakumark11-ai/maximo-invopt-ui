@@ -1,0 +1,22 @@
+# Dev environment overrides
+# Applied with: helm upgrade --install invopt-ui ./helm/invopt-ui \
+#               -f helm/invopt-ui/values.yaml \
+#               -f helm/invopt-ui/values-dev.yaml \
+#               -n masdev-inventory-opt
+
+replicaCount: 1
+
+image:
+  tag: "dev"
+
+route:
+  enabled: true
+  host: "invopt-ui.maspoc.apps.maspoc.zpih.p1.openshiftapps.com"
+
+resources:
+  requests:
+    cpu: 25m
+    memory: 32Mi
+  limits:
+    cpu: 100m
+    memory: 64Mi

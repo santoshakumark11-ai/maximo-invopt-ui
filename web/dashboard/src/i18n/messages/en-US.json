@@ -1,0 +1,66 @@
+{
+  "app.title": "Inventory Optimisation Agent",
+  "app.loading": "Loading…",
+  "app.error.generic": "Something went wrong. Please try again.",
+  "app.error.notFound": "Page not found.",
+  "app.error.notFound.description": "The page you are looking for does not exist.",
+  "app.error.notFound.action": "Go to dashboard",
+
+  "nav.dashboard": "Executive Dashboard",
+  "nav.recommendations": "Recommendations",
+  "nav.settings": "Settings",
+
+  "auth.signingIn": "Signing you in…",
+  "auth.signOut": "Sign out",
+  "auth.error": "Authentication failed. Please try again.",
+
+  "dashboard.title": "Executive Dashboard",
+  "dashboard.subtitle": "Inventory optimisation summary",
+  "dashboard.lastUpdated": "Last updated {time}",
+
+  "kpi.inventoryValue": "Inventory Value",
+  "kpi.inventoryValue.description": "Total value of on-hand inventory",
+  "kpi.workingCapital": "Working Capital",
+  "kpi.workingCapital.description": "Working capital tied up in stock",
+  "kpi.serviceLevel": "Service Level",
+  "kpi.serviceLevel.description": "Percentage of demand met from stock",
+  "kpi.openRecommendations": "Open Recommendations",
+  "kpi.openRecommendations.description": "Pending optimisation actions",
+
+  "chart.workingCapitalTrend.title": "Working Capital Trend",
+  "chart.workingCapitalTrend.yAxis": "Working Capital (USD)",
+  "chart.workingCapitalTrend.tooltip": "{period}: {value}",
+
+  "chart.recommendationsByStatus.title": "Recommendations by Status",
+  "chart.recommendationsByStatus.total": "{count} total",
+
+  "status.new": "New",
+  "status.pending": "Pending",
+  "status.approved": "Approved",
+  "status.applied": "Applied",
+  "status.rejected": "Rejected",
+
+  "criticality.high": "High",
+  "criticality.med": "Medium",
+  "criticality.low": "Low",
+
+  "table.forecastAccuracy.title": "Forecast Accuracy",
+  "table.forecastAccuracy.col.itemId": "Item ID",
+  "table.forecastAccuracy.col.description": "Description",
+  "table.forecastAccuracy.col.wape": "WAPE",
+  "table.forecastAccuracy.col.bias": "Bias",
+
+  "table.topItems.title": "Top Items by Release Value",
+  "table.topItems.col.itemId": "Item ID",
+  "table.topItems.col.description": "Description",
+  "table.topItems.col.releaseValue": "Release Value",
+  "table.topItems.col.site": "Site",
+  "table.topItems.col.criticality": "Criticality",
+
+  "empty.title": "No data available",
+  "empty.description": "There is nothing to display for the selected period.",
+
+  "error.retry": "Retry",
+  "error.dataLoad": "Failed to load data",
+  "error.dataLoad.description": "An error occurred while fetching data from the server."
+}

@@ -1,0 +1,43 @@
+{
+  "web": {
+    "dashboard": {
+      "package.json": "{\n  \"name\": \"dashboard\",\n  \"version\": \"1.0.0\",\n  \"private\": true,\n  \"type\": \"module\",\n  \"scripts\": {\n    \"dev\": \"vite\",\n    \"build\": \"tsc && vite build\",\n    \"lint\": \"eslint .\",\n    \"preview\": \"vite preview\"\n  }\n}",
+      "pnpm-lock.yaml": "",
+      "tsconfig.json": "{\n  \"compilerOptions\": {\n    \"target\": \"ES2022\",\n    \"useDefineForClassFields\": true,\n    \"lib\": [\"DOM\", \"DOM.Iterable\", \"ES2022\"],\n    \"module\": \"ESNext\",\n    \"skipLibCheck\": true,\n    \"strict\": true,\n    \"moduleResolution\": \"bundler\",\n    \"allowImportingTsExtensions\": true,\n    \"resolveJsonModule\": true,\n    \"isolatedModules\": true,\n    \"noEmit\": true,\n    \"jsx\": \"react-jsx\"\n  },\n  \"include\": [\"src\"]\n}",
+      "vite.config.ts": "import { defineConfig } from 'vite';\nimport react from '@vitejs/plugin-react';\n\nexport default defineConfig({\n  plugins: [react()]\n});",
+      ".storybook": {},
+      ".github": {
+        "workflows": {}
+      },
+      "public": {},
+      "src": {
+        "main.tsx": "import React from 'react';\nimport ReactDOM from 'react-dom/client';\nimport App from './App';\n\nReactDOM.createRoot(document.getElementById('root')!).render(\n  <React.StrictMode>\n    <App />\n  </React.StrictMode>\n);",
+        "App.tsx": "import React from 'react';\n\nexport default function App() {\n  return <div>Dashboard Loaded</div>;\n}",
+        "routes": {
+          "ExecutiveDashboard.tsx": "export default function ExecutiveDashboard() { return null; }",
+          "Recommendations.tsx": "export default function Recommendations() { return null; }",
+          "RecommendationDetail.tsx": "export default function RecommendationDetail() { return null; }"
+        },
+        "components": {},
+        "features": {
+          "executive": {},
+          "recommendations": {},
+          "detail": {}
+        },
+        "api": {
+          "generated": {},
+          "client.ts": "// Axios or Fetch client instance",
+          "queries.ts": "// Server-state queries",
+          "mutations.ts": "// Data mutation layers"
+        },
+        "auth": {},
+        "theme": {},
+        "i18n": {},
+        "lib": {},
+        "test": {},
+        "types": {}
+      }
+    }
+  },
+  "e2e": {}
+}

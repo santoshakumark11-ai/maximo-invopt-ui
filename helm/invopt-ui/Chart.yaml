@@ -1,0 +1,13 @@
+apiVersion: v2
+name: invopt-ui
+description: Inventory Optimisation Agent — React dashboard UI
+type: application
+version: 0.1.0
+appVersion: "0.1.0"
+keywords:
+  - maximo
+  - inventory-optimisation
+  - react
+  - carbon
+maintainers:
+  - name: MAS PoC Team

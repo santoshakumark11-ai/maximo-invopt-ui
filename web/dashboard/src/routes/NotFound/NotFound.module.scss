@@ -1,0 +1,31 @@
+.wrapper {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 100vh;
+  gap: 1rem;
+  text-align: center;
+  padding: 2rem;
+}
+
+.code {
+  font-size: 6rem;
+  font-weight: 300;
+  color: var(--cds-text-secondary);
+  margin: 0;
+  line-height: 1;
+}
+
+.title {
+  font-size: 1.5rem;
+  font-weight: 600;
+  color: var(--cds-text-primary);
+  margin: 0;
+}
+
+.description {
+  font-size: 1rem;
+  color: var(--cds-text-secondary);
+  margin: 0;
+}

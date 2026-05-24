@@ -1,0 +1,67 @@
+@use '../../theme/tokens' as t;
+
+.card {
+  background: var(--cds-layer-01);
+  border-left: 4px solid transparent;
+  border-radius: 0 4px 4px 0;
+  padding: 1.25rem 1.5rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  min-width: 180px;
+  flex: 1;
+  box-shadow: 0 1px 3px rgb(0 0 0 / 8%);
+  transition: box-shadow 0.15s ease;
+
+  &:hover {
+    box-shadow: 0 2px 8px rgb(0 0 0 / 14%);
+  }
+}
+
+// Accent border variants
+.accent-teal {
+  border-left-color: t.$accent-teal;
+}
+.accent-navy {
+  border-left-color: t.$accent-navy;
+}
+.accent-gold {
+  border-left-color: t.$accent-gold;
+}
+.accent-red {
+  border-left-color: t.$accent-red;
+}
+
+.label {
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--cds-text-secondary);
+  margin: 0;
+}
+
+.value {
+  font-size: 2rem;
+  font-weight: 300;
+  line-height: 1.1;
+  color: var(--cds-text-primary);
+  margin: 0;
+}
+
+.description {
+  font-size: 0.75rem;
+  color: var(--cds-text-secondary);
+  margin: 0;
+}
+
+.error {
+  font-size: 0.875rem;
+  color: var(--cds-support-error);
+  margin: 0;
+}
+
+.skeleton {
+  width: 60%;
+  margin: 0;
+}

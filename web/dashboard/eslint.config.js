@@ -1,21 +1,16 @@
-import js from '@eslint/js'
-import globals from 'globals'
-import tsParser from '@typescript-eslint/parser'
-import tsPlugin from '@typescript-eslint/eslint-plugin'
-import reactPlugin from 'eslint-plugin-react'
-import reactHooks from 'eslint-plugin-react-hooks'
-import jsxA11y from 'eslint-plugin-jsx-a11y'
-import prettierConfig from 'eslint-config-prettier'
-import prettierPlugin from 'eslint-plugin-prettier/recommended'
+import js from '@eslint/js';
+import globals from 'globals';
+import tsParser from '@typescript-eslint/parser';
+import tsPlugin from '@typescript-eslint/eslint-plugin';
+import reactPlugin from 'eslint-plugin-react';
+import reactHooks from 'eslint-plugin-react-hooks';
+import jsxA11y from 'eslint-plugin-jsx-a11y';
+import prettierConfig from 'eslint-config-prettier';
+import prettierPlugin from 'eslint-plugin-prettier/recommended';
 
 export default [
   {
-    ignores: [
-      'dist/**',
-      'node_modules/**',
-      '.ignored_node_modules/**',
-      'src/api/generated/**',
-    ],
+    ignores: ['dist/**', 'node_modules/**', '.ignored_node_modules/**', 'src/api/generated/**'],
   },
 
   js.configs.recommended,
@@ -47,6 +42,20 @@ export default [
       ...jsxA11y.configs.recommended.rules,
       'react/react-in-jsx-scope': 'off',
       'react/prop-types': 'off',
+      // TypeScript itself enforces undefined-variable checks via its compiler;
+      // ESLint's no-undef doesn't understand TS-only types (RequestInit, etc.)
+      // and produces false positives.  @typescript-eslint/no-unused-vars
+      // replaces the base rule.
+      'no-undef': 'off',
+      'no-unused-vars': 'off',
+      '@typescript-eslint/no-unused-vars': [
+        'error',
+        {
+          argsIgnorePattern: '^_',
+          varsIgnorePattern: '^_',
+          caughtErrorsIgnorePattern: '^_',
+        },
+      ],
     },
     settings: {
       react: { version: 'detect' },
@@ -66,4 +75,4 @@ export default [
 
   prettierConfig,
   prettierPlugin,
-]
+];

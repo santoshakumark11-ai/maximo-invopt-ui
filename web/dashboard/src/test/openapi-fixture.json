@@ -1,0 +1,208 @@
+{
+  "openapi": "3.0.3",
+  "info": {
+    "title": "Inventory Optimisation Agent API",
+    "version": "1.0.0"
+  },
+  "paths": {
+    "/v1/metrics/dashboard": {
+      "get": {
+        "operationId": "getDashboardMetrics",
+        "summary": "Get executive dashboard KPI metrics",
+        "responses": {
+          "200": {
+            "description": "Dashboard KPI metrics",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/DashboardKpis" }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/metrics/working-capital-trend": {
+      "get": {
+        "operationId": "getWorkingCapitalTrend",
+        "summary": "Get working capital trend over time",
+        "responses": {
+          "200": {
+            "description": "Working capital trend data",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/WorkingCapitalTrend" }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/metrics/recommendations-by-status": {
+      "get": {
+        "operationId": "getRecommendationsByStatus",
+        "summary": "Get recommendation counts grouped by status",
+        "responses": {
+          "200": {
+            "description": "Recommendation status mix",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/StatusMix" }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/metrics/forecast-accuracy": {
+      "get": {
+        "operationId": "getForecastAccuracy",
+        "summary": "Get forecast accuracy by demand pattern",
+        "responses": {
+          "200": {
+            "description": "Forecast accuracy breakdown",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": { "$ref": "#/components/schemas/ForecastAccuracyRow" }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/metrics/top-items": {
+      "get": {
+        "operationId": "getTopItems",
+        "summary": "Get top items by working capital released",
+        "responses": {
+          "200": {
+            "description": "Top items list",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": { "$ref": "#/components/schemas/TopItem" }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "DashboardKpis": {
+        "type": "object",
+        "required": [
+          "workingCapital",
+          "openRecommendations",
+          "forecastAccuracy",
+          "stockOutRisks",
+          "asOf"
+        ],
+        "properties": {
+          "workingCapital": {
+            "type": "object",
+            "required": ["released", "deltaVsPrior", "ytd"],
+            "properties": {
+              "released": { "type": "number" },
+              "deltaVsPrior": { "type": "number" },
+              "ytd": { "type": "number" }
+            }
+          },
+          "openRecommendations": {
+            "type": "object",
+            "required": ["total", "pendingApproval", "avgApprovalDays"],
+            "properties": {
+              "total": { "type": "integer" },
+              "pendingApproval": { "type": "integer" },
+              "avgApprovalDays": { "type": "number" }
+            }
+          },
+          "forecastAccuracy": {
+            "type": "object",
+            "required": ["wape", "deltaPctPts", "coverage"],
+            "properties": {
+              "wape": { "type": "number" },
+              "deltaPctPts": { "type": "number" },
+              "coverage": { "type": "string" }
+            }
+          },
+          "stockOutRisks": {
+            "type": "object",
+            "required": ["active", "safetyCritical", "autoUpliftApplied"],
+            "properties": {
+              "active": { "type": "integer" },
+              "safetyCritical": { "type": "integer" },
+              "autoUpliftApplied": { "type": "integer" }
+            }
+          },
+          "asOf": { "type": "string", "format": "date-time" }
+        }
+      },
+      "WorkingCapitalTrend": {
+        "type": "object",
+        "required": ["cumulative"],
+        "properties": {
+          "cumulative": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "required": ["month", "released", "target"],
+              "properties": {
+                "month": { "type": "string" },
+                "released": { "type": "number" },
+                "target": { "type": "number" }
+              }
+            }
+          }
+        }
+      },
+      "StatusMix": {
+        "type": "object",
+        "required": ["total", "segments"],
+        "properties": {
+          "total": { "type": "integer" },
+          "segments": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "required": ["status", "count", "pct"],
+              "properties": {
+                "status": {
+                  "type": "string",
+                  "enum": ["NEW", "PENDING", "APPROVED", "APPLIED", "REJECTED"]
+                },
+                "count": { "type": "integer" },
+                "pct": { "type": "number" }
+              }
+            }
+          }
+        }
+      },
+      "ForecastAccuracyRow": {
+        "type": "object",
+        "required": ["pattern", "items", "method", "wape", "bias"],
+        "properties": {
+          "pattern": { "type": "string" },
+          "items": { "type": "integer" },
+          "method": { "type": "string" },
+          "wape": { "type": "number" },
+          "bias": { "type": "number" }
+        }
+      },
+      "TopItem": {
+        "type": "object",
+        "required": ["itemId", "description", "releaseAmount"],
+        "properties": {
+          "itemId": { "type": "string" },
+          "description": { "type": "string" },
+          "releaseAmount": { "type": "number" }
+        }
+      }
+    }
+  }
+}

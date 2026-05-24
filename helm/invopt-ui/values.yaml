@@ -1,0 +1,68 @@
+# Default values — override per environment via values-<env>.yaml
+
+replicaCount: 2
+
+image:
+  repository: image-registry.openshift-image-registry.svc:5000/masdev-inventory-opt/invopt-ui
+  pullPolicy: IfNotPresent
+  # Override with the exact digest or tag in values-<env>.yaml
+  tag: "latest"
+
+nameOverride: ""
+fullnameOverride: "invopt-ui"
+
+serviceAccount:
+  create: false
+  name: ""
+
+podAnnotations: {}
+
+podSecurityContext:
+  runAsNonRoot: true
+
+securityContext:
+  allowPrivilegeEscalation: false
+  readOnlyRootFilesystem: false  # nginx needs to write to /tmp
+  runAsNonRoot: true
+  capabilities:
+    drop:
+      - ALL
+
+service:
+  type: ClusterIP
+  port: 8080
+
+# OpenShift Route (preferred over Ingress on OCP)
+route:
+  enabled: true
+  host: ""  # set in values-<env>.yaml
+  tls:
+    termination: edge
+    insecureEdgeTerminationPolicy: Redirect
+
+# Standard k8s Ingress (disabled when Route is used)
+ingress:
+  enabled: false
+
+resources:
+  requests:
+    cpu: 50m
+    memory: 64Mi
+  limits:
+    cpu: 200m
+    memory: 128Mi
+
+autoscaling:
+  enabled: false
+  minReplicas: 2
+  maxReplicas: 4
+  targetCPUUtilizationPercentage: 70
+
+# Environment variables injected into the container at runtime
+# (build-time VITE_ vars are baked into the JS bundle — these are
+#  additional runtime configs that nginx passes through as headers
+#  or that a /config.json endpoint could serve)
+env: {}
+
+# ConfigMap data for runtime config.json (optional)
+runtimeConfig: {}
