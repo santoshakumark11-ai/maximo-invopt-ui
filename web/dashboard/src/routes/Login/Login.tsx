@@ -1,5 +1,8 @@
 /**
- * Login page — Maximo username / password form.
+ * Login page — Maximo username + personal API key form.
+ *
+ * MAS 9.1 only supports API-key authentication for REST.
+ * Users generate their key in Maximo → Security → API Keys.
  *
  * On success the user is redirected to the page they originally tried to visit
  * (stored in router location.state.from) or "/" by default.
@@ -18,7 +21,7 @@ export function Login() {
   const from = (location.state as { from?: { pathname: string } } | null)?.from?.pathname ?? '/';
 
   const [username, setUsername] = useState('');
-  const [password, setPassword] = useState('');
+  const [apiKey, setApiKey] = useState('');
   const [localError, setLocalError] = useState<string | null>(null);
 
   const handleSubmit = async (e: FormEvent) => {
@@ -29,12 +32,12 @@ export function Login() {
       setLocalError('Username is required.');
       return;
     }
-    if (!password) {
-      setLocalError('Password is required.');
+    if (!apiKey.trim()) {
+      setLocalError('API key is required.');
       return;
     }
 
-    const ok = await login(username.trim(), password);
+    const ok = await login(username.trim(), apiKey.trim());
     if (ok) {
       navigate(from, { replace: true });
     }
@@ -49,7 +52,7 @@ export function Login() {
         {/* Logo / header */}
         <div className={styles.header}>
           <h1 className={styles.title}>Inventory Optimisation</h1>
-          <p className={styles.subtitle}>Sign in with your Maximo credentials</p>
+          <p className={styles.subtitle}>Sign in with your Maximo username and API key</p>
         </div>
 
         {/* Error notification */}
@@ -77,12 +80,13 @@ export function Login() {
           />
 
           <PasswordInput
-            id="login-password"
-            labelText="Password"
-            placeholder="••••••••"
+            id="login-api-key"
+            labelText="API Key"
+            helperText="Generate your key in Maximo → Security → API Keys"
+            placeholder="••••••••••••••••"
             autoComplete="current-password"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
+            value={apiKey}
+            onChange={(e) => setApiKey(e.target.value)}
             disabled={isLoading}
             className={styles.field}
           />

@@ -7,6 +7,11 @@ const __dirname = import.meta.dirname;
 
 export default defineConfig(({ mode }) => {
   const env = loadEnv(mode, process.cwd(), 'VITE_');
+  // VITE_API_BASE_URL can be a relative path ('/v1') in dev (used by client.ts)
+  // or an absolute URL in production.  http-proxy requires an absolute URL, so
+  // only use it as the proxy target when it actually starts with 'http'.
+  const rawApiUrl = (env.VITE_API_BASE_URL ?? '').trim();
+  const apiTarget: string = rawApiUrl.startsWith('http') ? rawApiUrl : 'http://localhost:8000';
   return {
     plugins: [react(), visualizer({ filename: 'dist/stats.html', gzipSize: true })],
     resolve: {
@@ -41,8 +46,8 @@ export default defineConfig(({ mode }) => {
         env.VITE_USE_MSW === 'true'
           ? undefined
           : {
-              '/v1': { target: env.VITE_API_BASE_URL, changeOrigin: true, secure: false },
-              '/auth': { target: env.VITE_API_BASE_URL, changeOrigin: true, secure: false },
+              '/v1': { target: apiTarget, changeOrigin: true, secure: false },
+              '/auth': { target: apiTarget, changeOrigin: true, secure: false },
             },
     },
     build: {

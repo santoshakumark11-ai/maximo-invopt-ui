@@ -27,8 +27,8 @@ interface AuthContextValue {
   isLoading: boolean;
   /** Error message from the last failed login attempt, if any. */
   loginError: string | null;
-  /** Submit username/password; resolves true on success, false on failure. */
-  login: (username: string, password: string) => Promise<boolean>;
+  /** Submit username + personal Maximo API key; resolves true on success, false on failure. */
+  login: (username: string, apiKey: string) => Promise<boolean>;
   /** Clear the session. */
   logout: () => void;
 }
@@ -63,7 +63,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [loginError, setLoginError] = useState<string | null>(null);
 
   const login = useCallback(
-    async (username: string, password: string): Promise<boolean> => {
+    async (username: string, apiKey: string): Promise<boolean> => {
       if (useMsw) {
         setUser(makeDevUser());
         return true;
@@ -76,7 +76,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         const resp = await fetch('/auth/login', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ username, password }),
+          body: JSON.stringify({ username, api_key: apiKey }),
         });
 
         if (!resp.ok) {

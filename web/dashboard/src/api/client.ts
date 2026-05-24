@@ -8,7 +8,9 @@
 import { getAccessToken } from '@/auth/token';
 import type { ApiError } from '@/types';
 
-const BASE_URL = (import.meta.env.VITE_API_BASE_URL as string) ?? '';
+// When VITE_API_BASE_URL is set (production/OpenShift) use the full origin.
+// In local dev leave it unset and let the Vite proxy forward /v1/* → backend.
+const BASE_URL = (import.meta.env.VITE_API_BASE_URL as string) ?? '/v1';
 
 export class HttpError extends Error {
   constructor(
