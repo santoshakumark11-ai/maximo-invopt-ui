@@ -1,0 +1,17 @@
+# Normalise line endings in the repo to LF.
+# Windows checkouts keep LF (no CRLF conversion) so git add always
+# sees the file as-is and detects changes written by Linux-side tools.
+
+* text=auto eol=lf
+
+# Binaries — never touch
+*.png  binary
+*.jpg  binary
+*.jpeg binary
+*.gif  binary
+*.ico  binary
+*.woff binary
+*.woff2 binary
+*.ttf  binary
+*.eot  binary
+*.pdf  binary
