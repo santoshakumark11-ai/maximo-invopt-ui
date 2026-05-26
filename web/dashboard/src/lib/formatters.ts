@@ -96,7 +96,9 @@ export function formatInteger(value: number, locale: string = DEFAULT_LOCALE): s
  * e.g. "2024-01" → "Jan 24"
  */
 export function formatPeriodLabel(isoMonth: string, locale: string = DEFAULT_LOCALE): string {
-  const [year, month] = isoMonth.split('-').map(Number);
+  const parts = isoMonth.split('-').map(Number);
+  const year = parts[0] ?? 2000;
+  const month = parts[1] ?? 1;
   const date = new Date(year, month - 1, 1);
   return new Intl.DateTimeFormat(locale, { month: 'short', year: '2-digit' }).format(date);
 }

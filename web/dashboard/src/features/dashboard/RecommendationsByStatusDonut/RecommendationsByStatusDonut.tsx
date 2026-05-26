@@ -32,7 +32,7 @@ export function RecommendationsByStatusDonut() {
   const { data, isLoading, isError, refetch } = useRecommendationsByStatus();
 
   if (isLoading) {
-    return <SkeletonPlaceholder className={styles.skeleton} />;
+    return <SkeletonPlaceholder className={styles.skeleton ?? ''} />;
   }
 
   if (isError) {

@@ -17,11 +17,11 @@ export type KpiAccent = 'teal' | 'navy' | 'gold' | 'red';
 
 interface KpiCardProps {
   label: string;
-  value?: string;
-  description?: string;
+  value?: string | undefined;
+  description?: string | undefined;
   accent?: KpiAccent;
   loading?: boolean;
-  error?: string;
+  error?: string | undefined;
 }
 
 export function KpiCard({
@@ -37,7 +37,7 @@ export function KpiCard({
       <p className={styles.label}>{label}</p>
 
       {loading ? (
-        <SkeletonText className={styles.skeleton} />
+        <SkeletonText className={styles.skeleton ?? ''} />
       ) : error ? (
         <p className={styles.error}>{error}</p>
       ) : (

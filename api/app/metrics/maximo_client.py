@@ -1,17 +1,21 @@
 """
-Maximo OSLC client for inventory data.
+Maximo REST API client for inventory data.
 
-All queries use the service-account API key (passed as apikey query parameter
-or as the maxauth header, depending on MAS version).  No user credentials are
-transmitted here — only the backend service account key stored in settings.
+All queries use the service-account API key (apikey header).
+No user credentials are transmitted here — only the backend service account
+key stored in settings.
 
-MXINVENTORY object structure (relevant attributes):
-  itemnum, description, siteid, curbal, reorderpoint, unitcost, status,
+MXAPIINVENTORY object structure (relevant attributes):
+  itemnum, siteid, curbal, reorderpoint, unitcost, status,
   orderunit, issue1y (issues last 12 months — used as demand proxy)
+  item.description  — description lives on the related ITEM object
 
-OSLC select syntax:  ?oslc.select=itemnum,description,siteid,...
-OSLC where syntax:   ?oslc.where=siteid%3D%22BEDFORD%22
-OSLC pageSize:       ?oslc.pageSize=500
+REST API select syntax:  ?oslc.select=itemnum,item.description,siteid,...
+REST API where syntax:   ?oslc.where=siteid%3D%22BEDFORD%22
+REST API pageSize:       ?oslc.pageSize=500
+
+Response format:  {"member": [...], "totalCount": N}
+  (Note: /api/os/ uses "member", NOT the OSLC "rdfs:member")
 """
 import logging
 from typing import Any
@@ -22,27 +26,30 @@ from app.config import Settings
 
 logger = logging.getLogger(__name__)
 
-# Max records to pull per query (Maximo OSLC default is 100 if not specified)
+# Max records to pull per query (Maximo REST API default is 100 if not specified)
 _PAGE_SIZE = 500
 
-# OSLC attributes we need from MXINVENTORY
+# Attributes to select from MXAPIINVENTORY.
+# - description is on the related ITEM object (item.description)
+# - unit cost lives in the INVCOST relationship (avgcost / stdcost — no unitcost field)
+# - reorderpoint and issue1y are direct fields but may be null/zero
 _SELECT = ",".join([
     "itemnum",
-    "description",
+    "item.description",
     "siteid",
     "curbal",
     "reorderpoint",
-    "unitcost",
     "status",
     "orderunit",
     "issue1y",
-    "avginvcost",
+    "invcost.avgcost",
+    "invcost.stdcost",
 ])
 
 
 def _api_url(settings: Settings) -> str:
     base = settings.maximo_base_url.rstrip("/")
-    return f"{base}/oslc/os/mxinventory"
+    return f"{base}/api/os/MXAPIINVENTORY"
 
 
 def _headers(settings: Settings) -> dict[str, str]:
@@ -54,49 +61,110 @@ def _headers(settings: Settings) -> dict[str, str]:
 
 async def fetch_inventory(settings: Settings) -> list[dict[str, Any]]:
     """
-    Pull all MXINVENTORY records (up to _PAGE_SIZE) and return raw dicts.
+    Pull all MXAPIINVENTORY records (up to _PAGE_SIZE) and return raw dicts.
     Falls back to an empty list if Maximo is unavailable.
+
+    No oslc.where filter is applied here — status filtering varies by site and
+    Maximo version.  Compute functions downstream ignore zero-balance records
+    where appropriate.
     """
     url = _api_url(settings)
     params = {
         "oslc.select": _SELECT,
         "oslc.pageSize": str(_PAGE_SIZE),
-        # Only active / storeroom inventory
-        "oslc.where": "status=\"ACTIVE\"",
     }
 
     try:
         async with httpx.AsyncClient(verify=False, timeout=settings.maximo_timeout) as client:
             resp = await client.get(url, headers=_headers(settings), params=params)
     except httpx.RequestError as exc:
-        logger.warning("MXINVENTORY request failed: %s", exc)
+        logger.warning("MXAPIINVENTORY request failed: %s", exc)
         return []
 
     if not resp.is_success:
-        logger.warning("MXINVENTORY returned HTTP %s", resp.status_code)
+        logger.warning("MXAPIINVENTORY returned HTTP %s — body: %s",
+                       resp.status_code, resp.text[:200])
         return []
 
     try:
         data = resp.json()
     except Exception:
-        logger.warning("MXINVENTORY response is not JSON")
+        logger.warning("MXAPIINVENTORY response is not JSON")
         return []
 
-    # OSLC wraps records under rdfs:member
-    members: list[dict[str, Any]] = data.get("rdfs:member", [])
-    logger.info("Fetched %d MXINVENTORY records", len(members))
+    # Log top-level keys to help diagnose unexpected response shapes
+    logger.debug("MXAPIINVENTORY response keys: %s", list(data.keys()))
+
+    # /api/os/ wraps records under "member"; some MAS versions still use "rdfs:member"
+    members: list[dict[str, Any]] = (
+        data.get("member")
+        or data.get("rdfs:member")
+        or []
+    )
+    logger.info(
+        "Fetched %d MXAPIINVENTORY records (totalCount=%s)",
+        len(members),
+        data.get("totalCount", "?"),
+    )
+    if members:
+        first = members[0]
+        logger.debug("MXAPIINVENTORY first record keys: %s", list(first.keys()))
     return members
 
 
-# ── Helpers to normalise OSLC attribute names ─────────────────────────────────
+# ── Helpers to normalise REST API attribute names ─────────────────────────────
 
 def _get(rec: dict[str, Any], *keys: str, default: Any = None) -> Any:
-    """Try multiple key spellings (MAS sometimes prefixes with 'spi:')."""
+    """
+    Try multiple key spellings (MAS prefixes scalar fields with 'spi:').
+
+    IMPORTANT: uses explicit `is not None` — NOT `or` — so that legitimate
+    zero / 0.0 values are returned rather than falling through to the default.
+    """
     for k in keys:
-        v = rec.get(k) or rec.get(f"spi:{k}")
-        if v is not None:
-            return v
+        for candidate in (k, f"spi:{k}"):
+            v = rec.get(candidate)
+            if v is not None:
+                return v
     return default
+
+
+def _get_description(rec: dict[str, Any]) -> str:
+    """
+    Extract item description from the nested ITEM relationship.
+
+    oslc.select 'item.description' returns:
+      { "item": { "description": "Some desc" } }
+    Confirmed from live logs: key is plain "item", value is plain dict.
+    """
+    item_obj = rec.get("item") or rec.get("spi:item") or {}
+    return str(item_obj.get("description") or item_obj.get("spi:description") or "")
+
+
+def _get_unitcost(rec: dict[str, Any]) -> float:
+    """
+    Extract unit cost from the INVCOST relationship.
+
+    INVCOST has avgcost and stdcost — no 'unitcost' field in this object structure.
+    Prefer avgcost; fall back to stdcost.
+
+    oslc.select 'invcost.avgcost' returns a list (INVCOST is a child table):
+      { "invcost": [ { "avgcost": 12.50, "stdcost": 11.80 }, ... ] }
+    or a single dict on some MAS versions.
+    """
+    raw = rec.get("invcost") or rec.get("spi:invcost")
+    if not raw:
+        return 0.0
+    # Normalise — could be a list or a single dict
+    entry: dict[str, Any] = raw[0] if isinstance(raw, list) else raw
+    for key in ("avgcost", "spi:avgcost", "stdcost", "spi:stdcost"):
+        v = entry.get(key)
+        if v is not None:
+            try:
+                return float(v)
+            except (TypeError, ValueError):
+                pass
+    return 0.0
 
 
 def _float(val: Any, default: float = 0.0) -> float:
@@ -116,10 +184,10 @@ def compute_kpi_summary(records: list[dict[str, Any]]) -> dict[str, Any]:
     excess_stock = 0
 
     for r in records:
-        curbal = _float(_get(r, "curbal", "CURBAL"))
-        reorder = _float(_get(r, "reorderpoint", "REORDERPOINT"))
-        unitcost = _float(_get(r, "unitcost", "UNITCOST"))
-        issue1y = _float(_get(r, "issue1y", "ISSUE1Y"))
+        curbal = _float(_get(r, "curbal"))
+        reorder = _float(_get(r, "reorderpoint"))
+        unitcost = _get_unitcost(r)
+        issue1y = _float(_get(r, "issue1y"))
 
         total_value += curbal * unitcost
 
@@ -150,10 +218,10 @@ def compute_inventory_by_status(records: list[dict[str, Any]]) -> list[dict[str,
     }
 
     for r in records:
-        curbal = _float(_get(r, "curbal", "CURBAL"))
-        reorder = _float(_get(r, "reorderpoint", "REORDERPOINT"))
-        unitcost = _float(_get(r, "unitcost", "UNITCOST"))
-        issue1y = _float(_get(r, "issue1y", "ISSUE1Y"))
+        curbal = _float(_get(r, "curbal"))
+        reorder = _float(_get(r, "reorderpoint"))
+        unitcost = _get_unitcost(r)
+        issue1y = _float(_get(r, "issue1y"))
         value = curbal * unitcost
 
         if curbal <= 0:
@@ -174,34 +242,54 @@ def compute_inventory_by_status(records: list[dict[str, Any]]) -> list[dict[str,
 def compute_top_items_by_risk(
     records: list[dict[str, Any]], limit: int = 20
 ) -> list[dict[str, Any]]:
+    """
+    Return top items ranked by working-capital release potential.
+
+    Scoring strategy (applied in priority order):
+    1. Reorder point configured + item is BELOW reorder → stockout risk score
+       (gap / reorder * 50 + log10(annual_value+1) * 10)
+    2. Reorder point configured + item is ABOVE reorder → excess stock score
+       (excess_value / total_value * 100)
+    3. No reorder point → fall back to ranking by total inventory value so the
+       table always shows something useful when reorder points aren't set up.
+    """
+    import math
+
     items = []
     for r in records:
-        curbal = _float(_get(r, "curbal", "CURBAL"))
-        reorder = _float(_get(r, "reorderpoint", "REORDERPOINT"))
-        unitcost = _float(_get(r, "unitcost", "UNITCOST"))
-        issue1y = _float(_get(r, "issue1y", "ISSUE1Y"))
+        curbal   = _float(_get(r, "curbal"))
+        reorder  = _float(_get(r, "reorderpoint"))
+        unitcost = _get_unitcost(r)
+        issue1y  = _float(_get(r, "issue1y"))
 
-        if reorder <= 0:
-            continue  # can't calculate risk without a reorder point
+        # Skip items with no balance and no cost — nothing meaningful to show
+        inv_value = curbal * unitcost
+        if curbal <= 0 and unitcost <= 0:
+            continue
 
-        # Risk score: how far below reorder, weighted by annual usage value
-        gap = reorder - curbal
-        if gap <= 0:
-            continue  # not below reorder
-
-        annual_value = issue1y * unitcost
-        # Normalise: score = gap/reorder * 50 + log10(annual_value+1) * 10
-        import math
-        score = min(100.0, (gap / reorder) * 50 + math.log10(annual_value + 1) * 10)
+        if reorder > 0:
+            gap = reorder - curbal  # positive = below reorder (risk)
+            if gap > 0:
+                # Below reorder: score by how critical the shortfall is
+                annual_value = issue1y * unitcost
+                score = min(100.0,
+                    (gap / reorder) * 50 + math.log10(annual_value + 1) * 10)
+            else:
+                # Above reorder: score by excess value as % of total value
+                excess_value = abs(gap) * unitcost
+                score = min(50.0, math.log10(excess_value + 1) * 8)
+        else:
+            # No reorder point — score purely by inventory value
+            score = min(30.0, math.log10(inv_value + 1) * 6) if inv_value > 0 else 0.0
 
         items.append({
-            "item_num":     str(_get(r, "itemnum", "ITEMNUM", default="")),
-            "description":  str(_get(r, "description", "DESCRIPTION", default="")),
-            "site_id":      str(_get(r, "siteid", "SITEID", default="")),
-            "current_bal":  round(curbal, 2),
+            "item_num":      str(_get(r, "itemnum") or ""),
+            "description":   _get_description(r),
+            "site_id":       str(_get(r, "siteid") or ""),
+            "current_bal":   round(curbal, 2),
             "reorder_point": round(reorder, 2),
-            "unit_cost":    round(unitcost, 2),
-            "risk_score":   round(score, 1),
+            "unit_cost":     round(unitcost, 2),
+            "risk_score":    round(score, 1),
         })
 
     items.sort(key=lambda x: x["risk_score"], reverse=True)

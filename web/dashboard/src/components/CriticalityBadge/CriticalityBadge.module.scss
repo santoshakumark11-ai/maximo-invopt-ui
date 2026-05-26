@@ -1,0 +1,25 @@
+.badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 8px;
+  border-radius: 4px;
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  white-space: nowrap;
+  line-height: 1.5;
+}
+
+.HIGH {
+  background: #c0392b;
+  color: #fff;
+}
+.MED {
+  background: #f2c85b;
+  color: #12183f;
+}
+.LOW {
+  background: #1f9d55;
+  color: #fff;
+}

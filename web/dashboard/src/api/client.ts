@@ -2,14 +2,12 @@
  * Lightweight fetch wrapper shared by all query hooks.
  *
  * - Attaches the Bearer token from the auth layer.
- * - Throws a typed ApiError on non-2xx responses.
+ * - Throws a typed HttpError on non-2xx responses.
  * - Respects VITE_API_BASE_URL for the base path.
  */
 import { getAccessToken } from '@/auth/token';
 import type { ApiError } from '@/types';
 
-// When VITE_API_BASE_URL is set (production/OpenShift) use the full origin.
-// In local dev leave it unset and let the Vite proxy forward /v1/* → backend.
 const BASE_URL = (import.meta.env.VITE_API_BASE_URL as string) ?? '/v1';
 
 export class HttpError extends Error {
@@ -44,7 +42,6 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
     throw new HttpError(response.status, body);
   }
 
-  // 204 No Content
   if (response.status === 204) {
     return undefined as T;
   }

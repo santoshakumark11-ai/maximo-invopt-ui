@@ -1,6 +1,6 @@
 // src/features/executive/KpiCard.test.tsx
 import { render, screen } from '@testing-library/react';
-import { KpiCard } from './KpiCard';
+import { KpiCard } from '@components/KpiCard';
 
 test('renders label, value, and delta', () => {
   render(

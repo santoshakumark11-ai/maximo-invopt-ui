@@ -7,7 +7,7 @@ from typing import Annotated
 from fastapi import APIRouter, Depends, HTTPException, status
 from pydantic import BaseModel
 
-from app.auth.maximo import validate_maximo_credentials
+from app.auth.maximo import validate_api_key
 from app.auth.jwt_utils import create_token
 from app.config import Settings, get_settings
 from app.dependencies import CurrentUser, get_current_user
@@ -20,7 +20,7 @@ router = APIRouter()
 
 class LoginRequest(BaseModel):
     username: str
-    password: str
+    api_key: str
 
 
 class LoginResponse(BaseModel):
@@ -39,26 +39,29 @@ class MeResponse(BaseModel):
 
 # ── Endpoints ─────────────────────────────────────────────────────────────────
 
-@router.post("/login", response_model=LoginResponse, summary="Authenticate with Maximo credentials")
+@router.post("/login", response_model=LoginResponse, summary="Authenticate with Maximo API key")
 async def login(
     body: LoginRequest,
     settings: Annotated[Settings, Depends(get_settings)],
 ) -> LoginResponse:
     """
-    Validate username/password against Maximo OSLC whoami, then issue a JWT.
+    Validate username + personal API key against Maximo OSLC whoami, then issue a JWT.
 
     The JWT is signed with HS256 and contains: sub, name, groups, iat, exp.
     Clients should send it as `Authorization: Bearer <token>` on subsequent requests.
+
+    Note: MAS 9.1 requires the native `apikey` header — Basic auth and maxauth
+    are redirected through Keycloak/OIDC and do not work for REST calls.
     """
-    if not body.username or not body.password:
+    if not body.username or not body.api_key:
         raise HTTPException(
             status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
-            detail="username and password are required",
+            detail="username and api_key are required",
         )
 
-    maximo_user = await validate_maximo_credentials(
+    maximo_user = await validate_api_key(
         username=body.username,
-        password=body.password,
+        api_key=body.api_key,
         maximo_base_url=settings.maximo_base_url,
         timeout=settings.maximo_timeout,
     )
@@ -66,7 +69,7 @@ async def login(
     if maximo_user is None:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Invalid Maximo credentials",
+            detail="Invalid Maximo username or API key",
             headers={"WWW-Authenticate": "Bearer"},
         )
 

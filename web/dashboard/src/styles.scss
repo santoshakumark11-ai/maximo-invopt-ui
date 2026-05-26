@@ -1,1 +1,32 @@
 @use '@carbon/react';
+
+// ── Domain design tokens ─────────────────────────────────────────────────────
+// Available globally as CSS custom properties on :root.
+
+:root {
+  // Primary palette
+  --mo-navy: #1e2761;
+  --mo-navy-dk: #12183f;
+  --mo-teal: #00a896;
+
+  // Semantic
+  --mo-gold: #f2c85b;
+  --mo-red: #c0392b;
+  --mo-green: #1f9d55;
+  --mo-amber: #d97706;
+
+  // Surfaces
+  --mo-bg: #f0f2f8;
+  --mo-panel: #f4f6fb;
+}
+
+// ── Global body background ───────────────────────────────────────────────────
+body {
+  background-color: var(--mo-bg);
+}
+
+// ── Carbon charts — reset min-height so cards don't balloon ─────────────────
+.cds--cc--chart-wrapper,
+.bx--cc--chart-wrapper {
+  min-height: 0 !important;
+}

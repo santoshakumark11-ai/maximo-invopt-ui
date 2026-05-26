@@ -1,10 +1,7 @@
 /**
- * TanStack Query v5 hooks for all Phase 1 API endpoints.
- *
- * Each hook returns the standard useQuery result shape.
- * Query keys are exported so tests and invalidation calls can reference them.
+ * TanStack Query v5 hooks for all Phase 1-3 API endpoints.
  */
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { apiClient } from './client';
 import type {
   DashboardKpis,
@@ -12,6 +9,10 @@ import type {
   StatusMix,
   ForecastAccuracyRow,
   TopItem,
+  RecListParams,
+  RecListResponse,
+  RecDetail,
+  ForecastSeries,
 } from '@/types';
 
 // ─── Query key factory ───────────────────────────────────────────────────────
@@ -22,20 +23,21 @@ export const queryKeys = {
   recommendationsByStatus: () => ['metrics', 'recommendations-by-status'] as const,
   forecastAccuracy: () => ['metrics', 'forecast-accuracy'] as const,
   topItems: () => ['metrics', 'top-items'] as const,
+  recList: (params: RecListParams) => ['recommendations', 'list', params] as const,
+  recDetail: (recId: string) => ['recommendations', 'detail', recId] as const,
+  forecast: (itemId: string, warehouseId: string) => ['forecasts', itemId, warehouseId] as const,
 } as const;
 
-// ─── Hooks ───────────────────────────────────────────────────────────────────
+// ─── Phase 1 ─────────────────────────────────────────────────────────────────
 
-/** Dashboard KPI summary — inventory value, working capital, service level, open recs */
 export function useDashboardKpis() {
   return useQuery({
     queryKey: queryKeys.dashboardKpis(),
     queryFn: () => apiClient.get<DashboardKpis>('/metrics/dashboard'),
-    staleTime: 5 * 60 * 1_000, // 5 min
+    staleTime: 5 * 60 * 1_000,
   });
 }
 
-/** 12-month working-capital trend series */
 export function useWorkingCapitalTrend() {
   return useQuery({
     queryKey: queryKeys.workingCapitalTrend(),
@@ -44,7 +46,6 @@ export function useWorkingCapitalTrend() {
   });
 }
 
-/** Recommendation counts grouped by status (donut chart) */
 export function useRecommendationsByStatus() {
   return useQuery({
     queryKey: queryKeys.recommendationsByStatus(),
@@ -53,7 +54,6 @@ export function useRecommendationsByStatus() {
   });
 }
 
-/** Per-item forecast accuracy rows (WAPE + bias) */
 export function useForecastAccuracy() {
   return useQuery({
     queryKey: queryKeys.forecastAccuracy(),
@@ -62,11 +62,65 @@ export function useForecastAccuracy() {
   });
 }
 
-/** Top items ranked by release / savings value */
 export function useTopItems() {
   return useQuery({
     queryKey: queryKeys.topItems(),
     queryFn: () => apiClient.get<TopItem[]>('/metrics/top-items'),
+    staleTime: 10 * 60 * 1_000,
+  });
+}
+
+// ─── Phase 2 — Recommendations ───────────────────────────────────────────────
+
+function buildRecListQs(params: RecListParams): string {
+  const qs = new URLSearchParams();
+  if (params.status?.length) qs.set('status', params.status.join(','));
+  if (params.type?.length) qs.set('type', params.type.join(','));
+  if (params.criticality?.length) qs.set('criticality', params.criticality.join(','));
+  if (params.item) qs.set('item', params.item);
+  if (params.q) qs.set('q', params.q);
+  if (params.page != null) qs.set('page', String(params.page));
+  if (params.pageSize != null) qs.set('pageSize', String(params.pageSize));
+  if (params.sort) qs.set('sort', params.sort);
+  const str = qs.toString();
+  return str ? `?${str}` : '';
+}
+
+export function useRecList(params: RecListParams) {
+  return useQuery({
+    queryKey: queryKeys.recList(params),
+    queryFn: () => apiClient.get<RecListResponse>(`/recommendations${buildRecListQs(params)}`),
+    placeholderData: (prev) => prev,
+    staleTime: 60 * 1_000,
+  });
+}
+
+export function useRecDetail(recId: string | undefined) {
+  return useQuery({
+    queryKey: queryKeys.recDetail(recId ?? ''),
+    queryFn: () => apiClient.get<RecDetail>(`/recommendations/${recId}`),
+    enabled: Boolean(recId),
+    staleTime: 60 * 1_000,
+  });
+}
+
+export function usePrefetchRecDetail() {
+  const qc = useQueryClient();
+  return (recId: string) =>
+    qc.prefetchQuery({
+      queryKey: queryKeys.recDetail(recId),
+      queryFn: () => apiClient.get<RecDetail>(`/recommendations/${recId}`),
+      staleTime: 60 * 1_000,
+    });
+}
+
+// ─── Phase 3 — Forecasts ─────────────────────────────────────────────────────
+
+export function useForecastSeries(itemId?: string, warehouseId?: string) {
+  return useQuery({
+    queryKey: queryKeys.forecast(itemId ?? '', warehouseId ?? ''),
+    queryFn: () => apiClient.get<ForecastSeries>(`/forecasts/${itemId}/${warehouseId}`),
+    enabled: Boolean(itemId && warehouseId),
     staleTime: 10 * 60 * 1_000,
   });
 }

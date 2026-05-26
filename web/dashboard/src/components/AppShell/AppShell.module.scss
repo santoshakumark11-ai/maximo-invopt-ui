@@ -1,0 +1,60 @@
+/* ── Header bar ── */
+.header {
+  background: var(--mo-navy-dk, #12183f) !important;
+  border-bottom: 3px solid var(--mo-teal, #00a896);
+}
+
+.logoText {
+  font-size: 1rem;
+  font-weight: 700;
+  background: linear-gradient(90deg, #fff 60%, var(--mo-teal, #00a896) 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  letter-spacing: 0.02em;
+}
+
+/* ── Tab bar row below header ── */
+.tabBar {
+  background: var(--mo-navy, #1e2761);
+  padding: 0 1rem;
+  display: flex;
+  align-items: flex-end;
+
+  /* Override Carbon tab colours */
+  :global(.cds--tabs__nav-link),
+  :global(.bx--tabs__nav-link) {
+    color: rgba(255, 255, 255, 0.7) !important;
+    border-bottom-color: transparent !important;
+  }
+
+  :global(.cds--tabs__nav-item--selected .cds--tabs__nav-link),
+  :global(.bx--tabs__nav-item--selected .bx--tabs__nav-link) {
+    color: #fff !important;
+    border-bottom-color: var(--mo-teal, #00a896) !important;
+    border-bottom-width: 3px !important;
+  }
+
+  :global(.cds--tabs__nav-link:hover),
+  :global(.bx--tabs__nav-link:hover) {
+    color: #fff !important;
+    background: rgba(255, 255, 255, 0.06) !important;
+  }
+}
+
+/* ── Main content area below the two-row header ── */
+.shell {
+  padding-top: 6rem; /* Carbon Header (3rem) + tab bar (~3rem) */
+  min-height: 100vh;
+  background: var(--mo-bg, #f0f2f8);
+}
+
+/* ── Header right — sign-out button ── */
+.headerActions {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding-right: 1rem;
+  color: rgba(255, 255, 255, 0.8);
+  font-size: 0.875rem;
+}

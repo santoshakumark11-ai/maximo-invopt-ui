@@ -48,7 +48,7 @@ export function Login() {
 
   return (
     <div className={styles.page}>
-      <Tile className={styles.card}>
+      <Tile className={styles.card ?? ''}>
         {/* Logo / header */}
         <div className={styles.header}>
           <h1 className={styles.title}>Inventory Optimisation</h1>
@@ -62,7 +62,7 @@ export function Login() {
             title="Sign-in failed"
             subtitle={errorMessage}
             hideCloseButton
-            className={styles.notification}
+            className={styles.notification ?? ''}
           />
         )}
 
@@ -76,7 +76,7 @@ export function Login() {
             value={username}
             onChange={(e) => setUsername(e.target.value)}
             disabled={isLoading}
-            className={styles.field}
+            className={styles.field ?? ''}
           />
 
           <PasswordInput
@@ -88,7 +88,7 @@ export function Login() {
             value={apiKey}
             onChange={(e) => setApiKey(e.target.value)}
             disabled={isLoading}
-            className={styles.field}
+            className={styles.field ?? ''}
           />
 
           <Button type="submit" disabled={isLoading} className={styles.submit}>

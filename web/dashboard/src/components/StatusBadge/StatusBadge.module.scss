@@ -1,0 +1,32 @@
+.badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 8px;
+  border-radius: 12px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: 0.03em;
+  white-space: nowrap;
+  line-height: 1.5;
+}
+
+.NEW {
+  background: #e8f0fb;
+  color: #1e2761;
+}
+.PENDING {
+  background: #fff4e1;
+  color: #d97706;
+}
+.APPROVED {
+  background: #e1f5ec;
+  color: #1f9d55;
+}
+.APPLIED {
+  background: #ddf3f0;
+  color: #00a896;
+}
+.REJECTED {
+  background: #fbe7e4;
+  color: #c0392b;
+}

@@ -1,0 +1,177 @@
+.page {
+  padding: 1.5rem 2rem;
+  max-width: 1280px;
+}
+
+.breadcrumb {
+  font-size: 0.8125rem;
+  color: var(--mo-teal, #00a896);
+  margin-bottom: 0.5rem;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+}
+
+.header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  gap: 1rem;
+  margin-bottom: 1.5rem;
+}
+
+.headerMeta {
+  flex: 1;
+}
+
+.eyebrow {
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--mo-teal, #00a896);
+  margin-bottom: 0.25rem;
+}
+
+.pageTitle {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: var(--mo-navy, #1e2761);
+  margin-bottom: 0.5rem;
+}
+
+.badgeRow {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  align-items: center;
+}
+
+.headerActions {
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+  align-items: center;
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: 1rem;
+  margin-bottom: 1.5rem;
+}
+
+.card {
+  background: #fff;
+  border: 1px solid var(--cds-border-subtle, #e0e0e0);
+  border-radius: 4px;
+  padding: 1.25rem 1.5rem;
+}
+
+.cardTitle {
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--mo-navy, #1e2761);
+  margin-bottom: 1rem;
+  padding-bottom: 0.5rem;
+  border-bottom: 2px solid var(--mo-teal, #00a896);
+}
+
+.statGrid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.75rem 1.5rem;
+}
+
+.statLabel {
+  font-size: 0.75rem;
+  color: var(--cds-text-helper, #6f6f6f);
+  margin-bottom: 0.125rem;
+}
+
+.statValue {
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--cds-text-primary, #161616);
+}
+
+.statValueLarge {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: var(--mo-navy, #1e2761);
+}
+
+.positive {
+  color: var(--mo-green, #1f9d55);
+}
+.negative {
+  color: var(--mo-red, #c0392b);
+}
+
+/* Forecast chart full-width */
+.chartCard {
+  grid-column: 1 / -1;
+  background: #fff;
+  border: 1px solid var(--cds-border-subtle, #e0e0e0);
+  border-radius: 4px;
+  padding: 1.25rem 1.5rem;
+}
+
+/* Feature contributions bar */
+.contribRow {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: 0.5rem;
+  font-size: 0.8125rem;
+}
+
+.contribLabel {
+  flex: 1;
+  color: var(--cds-text-primary, #161616);
+}
+.contribValue {
+  width: 4rem;
+  text-align: right;
+  color: var(--cds-text-helper, #6f6f6f);
+}
+.contribBarTrack {
+  flex: 2;
+  height: 8px;
+  background: #e0e0e0;
+  border-radius: 4px;
+  overflow: hidden;
+}
+.contribBarFill {
+  height: 100%;
+  background: var(--mo-teal, #00a896);
+  border-radius: 4px;
+}
+
+/* Audit trail */
+.auditEntry {
+  display: flex;
+  gap: 0.75rem;
+  padding: 0.5rem 0;
+  border-bottom: 1px solid var(--cds-border-subtle, #e0e0e0);
+  font-size: 0.8125rem;
+}
+.auditTs {
+  white-space: nowrap;
+  color: var(--cds-text-helper, #6f6f6f);
+  min-width: 11rem;
+}
+.auditActor {
+  font-weight: 600;
+  min-width: 6rem;
+}
+.auditEvent {
+  color: var(--mo-navy, #1e2761);
+}
+.auditDetail {
+  color: var(--cds-text-helper, #6f6f6f);
+  font-style: italic;
+}

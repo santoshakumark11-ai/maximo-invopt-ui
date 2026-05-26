@@ -1,99 +1,226 @@
 /**
- * Cross-cutting TypeScript interfaces for Phase 1.
- * All shapes mirror the OpenAPI spec in src/test/openapi-fixture.json.
+ * Cross-cutting TypeScript interfaces for Phases 1-3.
+ * All shapes mirror the backend Pydantic models (camelCase aliases).
  */
 
-// ─── KPI / Dashboard ────────────────────────────────────────────────────────
+// ─── Phase 1 — KPI / Dashboard ───────────────────────────────────────────────
 
 export interface DashboardKpis {
-  /** Total value of on-hand inventory (USD) */
   inventoryValue: number;
-  /** Working capital tied up in inventory (USD) */
   workingCapital: number;
-  /** Percentage of demand met from stock (0-100) */
   serviceLevel: number;
-  /** Number of open optimisation recommendations */
   openRecommendations: number;
 }
 
-// ─── Working-Capital Trend ───────────────────────────────────────────────────
-
 export interface WorkingCapitalPoint {
-  /** ISO-8601 date string, e.g. "2024-01" */
   period: string;
-  /** Working capital value in USD */
   value: number;
 }
 
 export type WorkingCapitalSeries = WorkingCapitalPoint[];
 
-// ─── Recommendations by Status ───────────────────────────────────────────────
-
-export type RecommendationStatus = 'new' | 'pending' | 'approved' | 'applied' | 'rejected';
-
 export interface StatusMixItem {
-  status: RecommendationStatus;
+  status: string;
   count: number;
 }
 
 export type StatusMix = StatusMixItem[];
 
-// ─── Forecast Accuracy ───────────────────────────────────────────────────────
-
 export interface ForecastAccuracyRow {
-  /** Item / SKU identifier */
   itemId: string;
-  /** Human-readable description */
   description: string;
-  /** Weighted Absolute Percentage Error (0-100) */
   wape: number;
-  /** Bias percentage — positive = over-forecast, negative = under-forecast */
   bias: number;
 }
-
-// ─── Top Items ───────────────────────────────────────────────────────────────
 
 export interface TopItem {
   itemId: string;
   description: string;
-  /** Estimated release / savings value in USD */
   releaseValue: number;
-  /** Asset / storeroom site code */
   site: string;
   criticality: 'high' | 'med' | 'low';
 }
 
-// ─── Recommendations (full entity used in detail views) ──────────────────────
+// ─── Phase 2 — Recommendations enums ────────────────────────────────────────
 
-export interface Recommendation {
-  id: string;
+export type RecStatus = 'NEW' | 'PENDING' | 'APPROVED' | 'APPLIED' | 'REJECTED';
+export type RecType = 'ROP' | 'SS' | 'EOQ' | 'SUB' | 'WRITEOFF';
+export type Criticality = 'HIGH' | 'MED' | 'LOW';
+export type AuditEventType =
+  | 'CREATED'
+  | 'NOTIFIED'
+  | 'VIEWED'
+  | 'EDITED'
+  | 'APPROVED'
+  | 'REJECTED'
+  | 'APPLIED'
+  | 'FAILED';
+
+// ─── Phase 2 — List ──────────────────────────────────────────────────────────
+
+export interface RecListItem {
+  recId: string;
   itemId: string;
-  description: string;
-  status: RecommendationStatus;
-  /** Recommended stock level */
-  recommendedQty: number;
-  /** Current on-hand quantity */
-  currentQty: number;
-  releaseValue: number;
-  site: string;
-  criticality: 'high' | 'med' | 'low';
+  itemDescription: string;
+  warehouseId: string;
+  type: RecType;
+  criticality: Criticality;
+  currentValue: number | string;
+  recommendedValue: number | string;
+  deltaWorkingCapital: number;
+  confidence: number;
+  status: RecStatus;
+  version: number;
   createdAt: string;
-  updatedAt: string;
+}
+
+export interface RecListResponse {
+  items: RecListItem[];
+  page: number;
+  pageSize: number;
+  totalItems: number;
+  totalPages: number;
+  asOf: string;
+}
+
+export interface RecListParams {
+  status?: RecStatus[];
+  type?: RecType[];
+  criticality?: Criticality[];
+  item?: string;
+  q?: string;
+  page?: number;
+  pageSize?: number;
+  sort?: string;
+}
+
+// ─── Phase 2 — Detail ────────────────────────────────────────────────────────
+
+export interface FeatureContribution {
+  name: string;
+  value: number | string;
+  contribution: number;
+}
+
+export interface Rationale {
+  demandPattern: 'smooth' | 'intermittent' | 'erratic' | 'lumpy';
+  adi: number;
+  cvSquared: number;
+  twelveMonthMeanQty: number;
+  leadTimeDaysMean: number;
+  leadTimeDaysStd: number;
+  serviceLevelTarget: number;
+  summaryText: string;
+}
+
+export interface VendorInfo {
+  vendorId: string;
+  name: string;
+  meanLeadDays: number;
+  stdLeadDays: number;
+  onTimePct: number;
+  unitCost: number;
+  holdingCostPct: number;
+  orderCost: number;
+}
+
+export interface LinkedAsset {
+  assetId: string;
+  description: string;
+  criticality: Criticality;
+}
+
+export interface AuditEvent {
+  ts: string;
+  actor: string;
+  event: AuditEventType;
+  detail: string | null;
+}
+
+export interface RecDetail extends RecListItem {
+  rationale: Rationale;
+  featureContributions: FeatureContribution[];
+  vendor: VendorInfo;
+  linkedAssets: LinkedAsset[];
+  audit: AuditEvent[];
+  wcRelease: number;
+  stockOutRiskChangePct: number;
+  modelVersion: string;
+  expiresAt: string;
+}
+
+// ─── Phase 2 — Payloads ──────────────────────────────────────────────────────
+
+export interface ApprovePayload {
+  justification?: string;
+}
+
+export interface RejectPayload {
+  reason: string;
+}
+
+export interface EditPayload {
+  recommendedValue: number;
+  justification: string;
+  expectedVersion: number;
+}
+
+export interface BulkApprovePayload {
+  recIds: string[];
+  justification?: string;
+}
+
+export interface BulkRejectPayload {
+  recIds: string[];
+  reason: string;
+}
+
+export interface BulkResultItem {
+  recId: string;
+  error?: string | null;
+}
+
+export interface BulkResultSummary {
+  succeeded: string[];
+  failed: BulkResultItem[];
+}
+
+// ─── Phase 3 — Forecast series ───────────────────────────────────────────────
+
+export interface HistoryPoint {
+  month: string;
+  qty: number;
+}
+
+export interface ForecastPoint {
+  month: string;
+  mean: number;
+  p10: number;
+  p90: number;
+}
+
+export interface ForecastSeries {
+  itemId: string;
+  warehouseId: string;
+  history: HistoryPoint[];
+  forecast: ForecastPoint[];
+  recommendedReorderPoint: number;
+  recommendedSafetyStock: number;
+  modelVersion: string;
+  asOf: string;
 }
 
 // ─── API helpers ─────────────────────────────────────────────────────────────
 
-/** Generic paginated envelope used by list endpoints */
+export interface ApiError {
+  code: string;
+  message: string;
+  details?: Record<string, unknown>;
+}
+
 export interface Page<T> {
   items: T[];
   total: number;
   page: number;
   pageSize: number;
-}
-
-/** Standard error body returned by the API */
-export interface ApiError {
-  code: string;
-  message: string;
-  details?: Record<string, unknown>;
 }

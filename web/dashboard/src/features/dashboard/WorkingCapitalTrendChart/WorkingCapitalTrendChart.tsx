@@ -3,6 +3,7 @@
  */
 import { LineChart } from '@carbon/charts-react';
 import type { LineChartOptions } from '@carbon/charts';
+import { ScaleTypes } from '@carbon/charts';
 import '@carbon/charts-react/styles.css';
 
 import { useWorkingCapitalTrend } from '@api/queries';
@@ -37,11 +38,10 @@ export function WorkingCapitalTrendChart() {
   const options: LineChartOptions = {
     title: 'Working Capital Trend',
     axes: {
-      bottom: { title: '', mapsTo: 'key', scaleType: 'labels' },
+      bottom: { title: '', mapsTo: 'key', scaleType: ScaleTypes.LABELS },
       left: {
         title: 'Working Capital (USD)',
         mapsTo: 'value',
-        formatter: (v: number) => formatCurrency(v),
       },
     },
     height: '300px',

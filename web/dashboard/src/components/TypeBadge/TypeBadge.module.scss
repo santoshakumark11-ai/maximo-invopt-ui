@@ -1,0 +1,33 @@
+.badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 8px;
+  border-radius: 4px;
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  white-space: nowrap;
+  line-height: 1.5;
+}
+
+.ROP {
+  background: #e0e4f2;
+  color: #1e2761;
+}
+.SS {
+  background: #dcefec;
+  color: #00a896;
+}
+.EOQ {
+  background: #fbe9b5;
+  color: #7a5a00;
+}
+.SUB {
+  background: #f0e4f2;
+  color: #6a2a85;
+}
+.WRITEOFF {
+  background: #f4f1ed;
+  color: #5b4a3f;
+}

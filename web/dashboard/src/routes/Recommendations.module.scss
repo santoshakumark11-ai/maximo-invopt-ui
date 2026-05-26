@@ -1,0 +1,32 @@
+.page {
+  padding: 1.5rem;
+}
+
+.toolbar {
+  margin-bottom: 1rem;
+}
+
+.loading {
+  margin-bottom: 1rem;
+}
+
+.table {
+  // Navy header row to match design
+  :global(.cds--data-table thead tr th) {
+    background-color: var(--mo-navy, #1e2761);
+    color: #fff;
+
+    // Sort arrow colour
+    button svg {
+      fill: #fff;
+    }
+  }
+}
+
+.dataRow {
+  cursor: pointer;
+
+  &:hover td {
+    background-color: var(--mo-panel, #f4f6fb);
+  }
+}

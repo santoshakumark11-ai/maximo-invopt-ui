@@ -81,7 +81,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
         if (!resp.ok) {
           const body = await resp.json().catch(() => ({}));
-          setLoginError((body as { detail?: string }).detail ?? 'Login failed');
+          // FastAPI 422s return detail as an array of Pydantic error objects
+          const raw = (body as { detail?: unknown }).detail;
+          const msg = Array.isArray(raw)
+            ? (raw as Array<{ msg?: string }>).map((e) => e.msg ?? 'Unknown error').join('; ')
+            : typeof raw === 'string'
+              ? raw
+              : 'Login failed';
+          setLoginError(msg);
           return false;
         }
 

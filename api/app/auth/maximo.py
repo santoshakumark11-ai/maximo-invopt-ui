@@ -2,13 +2,14 @@
 Maximo credential validation via OSLC whoami endpoint.
 
 Flow:
-  1. Client sends username + password.
-  2. We call GET {maximo_base_url}/oslc/whoami with Authorization: Basic <b64(user:pass)>.
+  1. Client sends username + personal API key.
+  2. We call GET {maximo_base_url}/oslc/whoami with the apikey header.
+     MAS 9.1 routes Authorization: Basic and maxauth through Keycloak/OIDC
+     redirects — only the native `apikey` header bypasses that flow.
   3. Maximo returns 200 + JSON with the user's display name and groups on success,
      or 401/403 on bad credentials.
   4. We return a MaximoUser dataclass on success, None on failure.
 """
-import base64
 import logging
 from dataclasses import dataclass
 
@@ -24,19 +25,19 @@ class MaximoUser:
     groups: list[str]
 
 
-async def validate_maximo_credentials(
+async def validate_api_key(
     username: str,
-    password: str,
+    api_key: str,
     maximo_base_url: str,
     timeout: int = 30,
 ) -> MaximoUser | None:
     """
-    Validate username/password against Maximo's OSLC whoami endpoint.
+    Validate a personal Maximo API key against the OSLC whoami endpoint.
 
     Returns a MaximoUser on success, None if the credentials are wrong or
     if Maximo is unreachable.
 
-    The whoami response looks like:
+    The /api/whoami response looks like:
       {
         "spi:loginID": "JANEDOE",
         "dcterms:title": "Jane Doe",
@@ -46,17 +47,16 @@ async def validate_maximo_credentials(
         ]
       }
     """
-    # Build Basic auth header
-    token = base64.b64encode(f"{username}:{password}".encode()).decode()
     headers = {
-        "Authorization": f"Basic {token}",
+        "apikey": api_key,
         "Accept": "application/json",
     }
 
     # Strip trailing slash then build the whoami URL.
-    # MAS 9.x OSLC endpoint: /maximo/oslc/whoami
+    # MAS 9.1+: use /api/whoami with apikey header.
+    # /oslc/whoami is redirected (302) through Keycloak/OIDC — do not use it.
     base = maximo_base_url.rstrip("/")
-    url = f"{base}/oslc/whoami"
+    url = f"{base}/api/whoami"
 
     try:
         async with httpx.AsyncClient(verify=False, timeout=timeout) as client:
@@ -65,12 +65,16 @@ async def validate_maximo_credentials(
         logger.warning("Maximo whoami request failed: %s", exc)
         return None
 
-    if resp.status_code == 401 or resp.status_code == 403:
-        logger.info("Maximo rejected credentials for user %s (HTTP %s)", username, resp.status_code)
+    if resp.status_code in (401, 403):
+        logger.info(
+            "Maximo rejected API key for user %s (HTTP %s)", username, resp.status_code
+        )
         return None
 
     if not resp.is_success:
-        logger.warning("Unexpected Maximo whoami status %s for user %s", resp.status_code, username)
+        logger.warning(
+            "Unexpected Maximo whoami status %s for user %s", resp.status_code, username
+        )
         return None
 
     try:
@@ -95,9 +99,19 @@ async def validate_maximo_credentials(
         if name:
             groups.append(name)
 
-    logger.info("Maximo auth OK for %s — groups: %s", username, groups)
+    # Verify the returned loginID matches the submitted username (case-insensitive)
+    returned_login = data.get("spi:loginID", username).upper()
+    if returned_login != username.upper():
+        logger.warning(
+            "Maximo whoami loginID mismatch: submitted=%s returned=%s",
+            username,
+            returned_login,
+        )
+        # Still proceed — the key is valid even if casing differs
+
+    logger.info("Maximo API key OK for %s — groups: %s", returned_login, groups)
     return MaximoUser(
-        username=data.get("spi:loginID", username).upper(),
+        username=returned_login,
         display_name=display_name,
         groups=groups,
     )
