@@ -4,6 +4,7 @@ dist
 .git
 .gitignore
 *.md
+.tmp
 web/dashboard/playwright-report
 web/dashboard/test-results
 web/dashboard/lhci
