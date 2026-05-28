@@ -15,7 +15,7 @@ from __future__ import annotations
 
 import math
 from datetime import datetime, timezone, timedelta
-from typing import Any
+from typing import Any, Optional
 
 from app.recommendations.models import (
     AuditEvent,
@@ -241,11 +241,123 @@ def _build_writeoff(
     )
 
 
+# ── Q1.2: optimisation-engine path ────────────────────────────────────────────
+
+def build_rop_from_engine(
+    idx: int,
+    ts: str,
+    expires_at: str,
+    itemnum: str,
+    description: str,
+    siteid: str,
+    curbal: float,
+    reorder: float,
+    unitcost: float,
+    inv_value: float,
+    *,
+    demand_history: list[float],
+    lead_time_days: list[float],
+    holding_cost_pct: float = 0.20,
+    order_cost: float = 75.0,
+    vendor: Optional[VendorInfo] = None,
+) -> Optional[RecommendationDetail]:
+    """
+    Build a ROP recommendation using the real DLD §8 maths.
+
+    Returns None when the engine output does NOT cross the configured delta
+    threshold (per DLD §13 `recommendation.delta_threshold_pct`) — i.e. there
+    is no defensible opportunity for this item.
+
+    The caller supplies demand_history and lead_time_days (12-24 months and
+    >= 4 receipts respectively); the generator's existing in-memory path
+    keeps working when those are not yet wired up.
+    """
+    from app.config import get_settings
+    from app.forecasting.classifier import classify
+    from app.optimisation.engine import (
+        OptimisationInput, compute_recommendation,
+    )
+
+    cls = classify(demand_history) if demand_history else None
+    criticality = _criticality(inv_value)
+    inp = OptimisationInput(
+        item_id=itemnum, warehouse_id=siteid, criticality=criticality,
+        demand_history=demand_history, lead_time_days=lead_time_days,
+        unit_cost=unitcost, holding_cost_pct=holding_cost_pct, order_cost=order_cost,
+    )
+    res = compute_recommendation(inp)
+    settings = get_settings()
+
+    if reorder <= 0:
+        return None
+    delta_pct = abs(res.rop - reorder) / reorder * 100.0
+    if delta_pct < settings.recommendation_delta_threshold_pct:
+        return None
+
+    delta_wc = round((reorder - res.rop) * unitcost, 2)
+    if delta_wc <= 0:
+        return None  # The engine wants MORE stock, not less — surface separately
+
+    confidence = 0.70 if res.ss_method == "bootstrap" else 0.92
+    pattern_label = cls.pattern if cls else "intermittent"
+    summary = (
+        f"Engine recommends ROP {res.rop} (current {reorder:.0f}). "
+        f"Demand pattern: {pattern_label} (ADI {res.mean_demand_per_period:.2f}, "
+        f"β={res.beta:.3f}). Method: {res.ss_method}. "
+        f"Working-capital release ≈ ${delta_wc:,.0f}."
+    )
+
+    rec = RecommendationDetail(
+        rec_id=f"REC-{idx:04d}",
+        item_id=itemnum,
+        item_description=description or itemnum,
+        warehouse_id=siteid,
+        type="ROP",
+        criticality=criticality,
+        current_value=reorder,
+        recommended_value=float(res.rop),
+        delta_working_capital=delta_wc,
+        confidence=confidence,
+        status="NEW",
+        version=1,
+        created_at=ts,
+        wc_release=delta_wc,
+        stock_out_risk_change_pct=0.0,
+        model_version="optimisation-engine/v1+forecasting@v1",
+        expires_at=expires_at,
+        rationale=Rationale(
+            demand_pattern=pattern_label if pattern_label in ("smooth", "intermittent", "erratic", "lumpy") else "intermittent",
+            adi=cls.adi if cls else 1.0,
+            cv_squared=cls.cv_squared if cls else 0.5,
+            twelve_month_mean_qty=res.mean_demand_per_period * 12,
+            lead_time_days_mean=res.mean_lead_time_days,
+            lead_time_days_std=res.std_lead_time_days,
+            service_level_target=res.beta,
+            summary_text=summary,
+        ),
+        feature_contributions=[
+            FeatureContribution(name="mean_demand", value=round(res.mean_demand_per_period, 2), contribution=0.35),
+            FeatureContribution(name="std_demand",  value=round(res.std_demand_per_period,  2), contribution=0.25),
+            FeatureContribution(name="lead_time_days_mean", value=round(res.mean_lead_time_days, 1), contribution=0.20),
+            FeatureContribution(name="lead_time_days_std",  value=round(res.std_lead_time_days,  1), contribution=0.10),
+            FeatureContribution(name="beta",        value=res.beta,                                contribution=0.10),
+        ],
+        vendor=vendor or _PLACEHOLDER_VENDOR,
+        linked_assets=[],
+        audit=_audit_created(ts),
+    )
+    return rec
+
+
 # ── Public entry point ────────────────────────────────────────────────────────
 
 def generate_from_inventory(
     records: list[dict[str, Any]],
     max_recs: int = _MAX_RECS,
+    *,
+    demand_histories: Optional[dict[tuple[str, str], list[float]]] = None,
+    lead_time_histories: Optional[dict[tuple[str, str], list[float]]] = None,
+    vendor_blocks: Optional[dict[tuple[str, str], VendorInfo]] = None,
 ) -> list[RecommendationDetail]:
     """
     Analyse MXAPIINVENTORY records and return up to max_recs recommendations
@@ -266,7 +378,7 @@ def generate_from_inventory(
         description = _description(r)
         siteid      = str(_get(r, "siteid") or "")
         curbal      = _float(_get(r, "curbal"))
-        reorder     = _float(_get(r, "reorderpoint"))
+        reorder     = _float(_get(r, "minlevel", "reorderpoint"))
         unitcost    = _unitcost(r)
 
         if unitcost <= 0:
@@ -277,6 +389,31 @@ def generate_from_inventory(
             continue  # below the noise threshold
 
         idx = len(candidates) + 1
+
+        # Q1.2: prefer the optimisation engine path when demand history exists
+        # for this (item, warehouse).  Falls back to the heuristic when
+        # histories are not supplied (e.g. cold-start) or when the engine
+        # determines no defensible opportunity exists.
+        key = (itemnum, siteid)
+        engine_history = (demand_histories    or {}).get(key, [])
+        engine_lead    = (lead_time_histories or {}).get(key, [])
+        engine_vendor  = (vendor_blocks       or {}).get(key)
+
+        if reorder > 0 and engine_history and engine_lead:
+            engine_rec = build_rop_from_engine(
+                idx, ts, expires_at,
+                itemnum, description, siteid,
+                curbal, reorder, unitcost, inv_value,
+                demand_history=engine_history,
+                lead_time_days=engine_lead,
+                vendor=engine_vendor,
+            )
+            if engine_rec is not None:
+                candidates.append((engine_rec.delta_working_capital, engine_rec))
+                continue
+            # Engine declined (delta below threshold) — skip this item, do NOT
+            # silently fall back to the heuristic, otherwise we'd noise the queue.
+            continue
 
         if reorder > 0 and curbal > reorder * 1.5:
             rec = _build_rop(

@@ -7,6 +7,8 @@ const LABELS: Record<RecStatus, string> = {
   APPROVED: 'Approved',
   APPLIED: 'Applied',
   REJECTED: 'Rejected',
+  FAILED: 'Failed',
+  SUPERSEDED: 'Superseded',
 };
 
 interface Props {

@@ -1,15 +1,71 @@
-# Core
-fastapi==0.111.1
-uvicorn[standard]==0.30.1
+# Inventory Optimisation Agent — Python dependencies.
+#
+# Floor pins (>=) are used so pip can pick the latest 3.11/3.12/3.13-compatible
+# wheels.  Many libraries we depend on did not have Python 3.13 wheels until
+# late 2024 / early 2025; the floors below all do.
+#
+# Tested with:   Python 3.11, 3.12, 3.13
+# Recommended:   Python 3.12 (best wheel coverage for all libs)
+
+# ─── Core ─────────────────────────────────────────────────────────────────────
+fastapi>=0.115.0
+uvicorn[standard]>=0.32.0
 
 # HTTP client (async, used for Maximo OSLC calls)
-httpx==0.27.0
+httpx>=0.27.0
 
 # JWT — python-jose with cryptography backend
-python-jose[cryptography]==3.3.0
+python-jose[cryptography]>=3.3.0
 
 # Settings via .env
-pydantic-settings==2.3.4
+pydantic-settings>=2.5.0
 
-# Pydantic v2 (pulled by fastapi, pinned for reproducibility)
-pydantic==2.7.4
+# Pydantic v2 (pulled by fastapi, floor pinned to a 3.13-friendly release)
+pydantic>=2.9.0
+
+# ─── Persistence (Q1.1) ───────────────────────────────────────────────────────
+# Async ORM + migrations.  SQLite is the dev fallback; Postgres is production.
+# asyncpg 0.30.0 (Oct 2024) is the first release with Python 3.13 wheels.
+sqlalchemy[asyncio]>=2.0.34
+alembic>=1.13.2
+aiosqlite>=0.20.0
+asyncpg>=0.30.0
+
+# ─── Observability (Q1.1) ─────────────────────────────────────────────────────
+prometheus-fastapi-instrumentator>=7.0.0
+python-json-logger>=2.0.7
+
+# ─── Forecasting & Optimisation (Q1.2) ────────────────────────────────────────
+# numpy 2.1+ and scipy 1.14+ are the first releases with Python 3.13 wheels.
+numpy>=2.1.0
+scipy>=1.14.0
+
+# statsforecast pulls numba+llvmlite, which lag a release behind Python.
+# Skip the install entirely on Python 3.13; the forecasting service detects
+# the missing import and falls back to the NumPy bootstrap quantile path.
+# Quality-wise the bootstrap is good enough for an initial pilot — re-enable
+# statsforecast on Python 3.12 (or once numba ships 3.13 wheels you can use).
+statsforecast>=1.7.6 ; python_version < "3.13"
+
+# ─── Scheduler (Q1.2) ─────────────────────────────────────────────────────────
+# APScheduler runs the nightly batch in-process.  Optional — when not installed
+# or when SCHEDULER_ENABLED=false, the orchestrator runs only on POST :run.
+APScheduler>=3.10.4
+
+# ─── Q2.1: Substitution recommender ───────────────────────────────────────────
+# sentence-transformers provides all-MiniLM-L6-v2 for item-description embeddings.
+# Falls back to TF-IDF + cosine (scikit-learn) when not installed.
+# pgvector support via sqlalchemy + asyncpg (already in Q1.1 deps).
+sentence-transformers>=3.0.0 ; python_version < "3.13"
+scikit-learn>=1.5.0
+
+# ─── Q2.2: LLM gateway ───────────────────────────────────────────────────────
+# Provider-agnostic: openai SDK covers Azure OpenAI; ibm-watsonx-ai for watsonx.
+# Both are optional — when absent the mock driver is used (returns templated text).
+openai>=1.40.0
+ibm-watsonx-ai>=1.1.0 ; python_version < "3.13"
+
+# ─── Tests ────────────────────────────────────────────────────────────────────
+pytest>=8.3.2
+pytest-asyncio>=0.23.8
+pytest-cov>=5.0.0

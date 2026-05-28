@@ -33,17 +33,32 @@ _PAGE_SIZE = 500
 # - description is on the related ITEM object (item.description)
 # - unit cost lives in the INVCOST relationship (avgcost / stdcost — no unitcost field)
 # - reorderpoint and issue1y are direct fields but may be null/zero
+# Q1.2: field names are the MBO attribute names from MXAPIINVENTORY, NOT the
+# UI labels.  Key mappings (confirmed from the OS XML schema):
+#   UI "Reorder Point"        → MINLEVEL
+#   UI "Safety Stock"         → SSTOCK
+#   UI "Economic Order Qty"   → ORDERQTY
+#   UI "Lead Time (Days)"     → DELIVERYTIME
+#   UI "Current Balance"      → via INVBALANCES.CURBAL (flattened by MAS)
 _SELECT = ",".join([
     "itemnum",
     "item.description",
     "siteid",
-    "curbal",
-    "reorderpoint",
+    "location",
+    "curbal",               # INVBALANCES child, flattened by MAS in JSON response
+    "minlevel",             # = Reorder Point
+    "sstock",               # = Safety Stock
+    "orderqty",             # = Economic Order Quantity
+    "deliverytime",         # = Lead Time in days
+    "vendor",
     "status",
     "orderunit",
-    "issue1y",
+    "issue1yrago",          # issues last 12 months (ISSUE1YRAGO in the OS)
     "invcost.avgcost",
     "invcost.stdcost",
+    "invvendor.vendor",
+    "invvendor.isdefault",
+    "invvendor.manufacturer",
 ])
 
 
@@ -185,9 +200,9 @@ def compute_kpi_summary(records: list[dict[str, Any]]) -> dict[str, Any]:
 
     for r in records:
         curbal = _float(_get(r, "curbal"))
-        reorder = _float(_get(r, "reorderpoint"))
+        reorder = _float(_get(r, "minlevel", "reorderpoint"))
         unitcost = _get_unitcost(r)
-        issue1y = _float(_get(r, "issue1y"))
+        issue1y = _float(_get(r, "issue1yrago", "issue1y"))
 
         total_value += curbal * unitcost
 
@@ -219,9 +234,9 @@ def compute_inventory_by_status(records: list[dict[str, Any]]) -> list[dict[str,
 
     for r in records:
         curbal = _float(_get(r, "curbal"))
-        reorder = _float(_get(r, "reorderpoint"))
+        reorder = _float(_get(r, "minlevel", "reorderpoint"))
         unitcost = _get_unitcost(r)
-        issue1y = _float(_get(r, "issue1y"))
+        issue1y = _float(_get(r, "issue1yrago", "issue1y"))
         value = curbal * unitcost
 
         if curbal <= 0:
@@ -258,9 +273,9 @@ def compute_top_items_by_risk(
     items = []
     for r in records:
         curbal   = _float(_get(r, "curbal"))
-        reorder  = _float(_get(r, "reorderpoint"))
+        reorder  = _float(_get(r, "minlevel", "reorderpoint"))
         unitcost = _get_unitcost(r)
-        issue1y  = _float(_get(r, "issue1y"))
+        issue1y  = _float(_get(r, "issue1yrago", "issue1y"))
 
         # Skip items with no balance and no cost — nothing meaningful to show
         inv_value = curbal * unitcost

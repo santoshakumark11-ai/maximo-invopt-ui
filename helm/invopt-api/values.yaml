@@ -1,0 +1,143 @@
+# ─── Image ────────────────────────────────────────────────────────────────────
+replicaCount: 2
+
+image:
+  # Default points at the OpenShift internal registry — set the namespace via
+  # values-<env>.yaml or --set image.repository=...
+  repository: image-registry.openshift-image-registry.svc:5000/invopt/invopt-api
+  pullPolicy: IfNotPresent
+  tag: "latest"
+
+nameOverride: ""
+fullnameOverride: "invopt-api"
+
+# ─── Service account ─────────────────────────────────────────────────────────
+serviceAccount:
+  create: false
+  name: ""
+
+# ─── Pod security ────────────────────────────────────────────────────────────
+podAnnotations: {}
+
+podSecurityContext:
+  runAsNonRoot: true
+
+securityContext:
+  allowPrivilegeEscalation: false
+  readOnlyRootFilesystem: false   # uvicorn needs to write to /tmp
+  runAsNonRoot: true
+  capabilities:
+    drop: ["ALL"]
+
+# ─── Service + Route ─────────────────────────────────────────────────────────
+service:
+  type: ClusterIP
+  port: 8080
+
+# OpenShift Route (preferred over Ingress)
+route:
+  enabled: true
+  host: ""                         # set per-env, e.g. invopt-api.apps.<cluster>
+  tls:
+    termination: edge
+    insecureEdgeTerminationPolicy: Redirect
+
+ingress:
+  enabled: false
+
+# ─── Resources ───────────────────────────────────────────────────────────────
+resources:
+  requests:
+    cpu: 200m
+    memory: 512Mi
+  limits:
+    cpu: 1000m
+    memory: 1Gi
+
+# ─── Autoscaling ─────────────────────────────────────────────────────────────
+autoscaling:
+  enabled: false
+  minReplicas: 2
+  maxReplicas: 6
+  targetCPUUtilizationPercentage: 70
+
+# ─── Application configuration (non-secret) ─────────────────────────────────
+# These values land in a ConfigMap that gets mounted as env vars.  Secrets
+# (passwords, API keys) belong in an externally-managed Secret named in
+# `secretName`.
+config:
+  APP_ENV: "production"
+  MAXIMO_BASE_URL: "https://manage.maspoc.apps.maspoc.zpih.p1.openshiftapps.com/maximo"
+  MAXIMO_TIMEOUT: "30"
+  JWT_EXPIRE_SECONDS: "28800"
+  CORS_ORIGINS: ""                # CSV of allowed origins; set per env
+
+  # Q1.1 persistence — must point at a real Postgres in production.
+  PERSISTENCE_ENABLED: "true"
+  # DATABASE_URL comes from the Secret (it contains credentials).
+
+  # Q1.1 writeback + observability
+  WRITEBACK_ENABLED: "false"      # flip true after MXINV_INVENTORY_V1 is approved
+  WRITEBACK_OS_NAME: "MXINV_INVENTORY_V1"
+  PROMETHEUS_ENABLED: "true"
+  LOG_JSON: "true"
+  LOG_LEVEL: "INFO"
+
+  # Q1.2 forecasting + optimisation
+  RECOMMENDATION_DELTA_THRESHOLD_PCT: "5.0"
+  SERVICE_LEVEL_NON_CRITICAL: "0.95"
+  SERVICE_LEVEL_CRITICAL: "0.99"
+  SERVICE_LEVEL_SAFETY_CRITICAL: "0.995"
+  FORECASTING_USE_STATSFORECAST: "true"
+
+  # Q1.2 scheduler — off by default.  Flip after first manual :run looks good.
+  SCHEDULER_ENABLED: "false"
+  SCHEDULER_CRON: "0 2 * * *"
+  SCHEDULER_HISTORY_MONTHS: "24"
+
+  # Q2.1 substitution
+  SUBSTITUTION_EMBEDDING_MODEL: "all-MiniLM-L6-v2"
+  SUBSTITUTION_TOP_K: "10"
+
+  # Q2.1 agent
+  AGENT_AUTO_APPLY_ENABLED: "false"
+  AGENT_MAX_DELTA_WC: "5000"
+  AGENT_ALLOWED_CRITICALITIES: "LOW"
+  AGENT_ALLOWED_TYPES: "ROP,SS,EOQ"
+
+  # Q2.2 LLM — provider defaults to mock.  Flip to openai/azure_openai/watsonx
+  # when the matching credentials are populated in the Secret.
+  LLM_PROVIDER: "mock"
+  LLM_MODEL: ""
+  LLM_DEPLOYMENT: ""
+  LLM_PROJECT_ID: ""
+  LLM_MAX_TOKENS: "512"
+  LLM_TEMPERATURE: "0.3"
+
+# Name of an externally-managed Secret that holds:
+#   MAXIMO_API_KEY      (required)
+#   JWT_SECRET          (required)
+#   AUDIT_HMAC_SECRET   (required)
+#   DATABASE_URL        (required when PERSISTENCE_ENABLED=true)
+#   LLM_API_KEY         (required when LLM_PROVIDER != mock)
+#   LLM_ENDPOINT        (optional, depending on provider)
+secretName: "invopt-api-secrets"
+
+# ─── Probes ──────────────────────────────────────────────────────────────────
+livenessProbe:
+  httpGet:
+    path: /healthz
+    port: http
+  initialDelaySeconds: 20
+  periodSeconds: 30
+  timeoutSeconds: 3
+  failureThreshold: 3
+
+readinessProbe:
+  httpGet:
+    path: /readyz
+    port: http
+  initialDelaySeconds: 10
+  periodSeconds: 15
+  timeoutSeconds: 5
+  failureThreshold: 3

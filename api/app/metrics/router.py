@@ -61,7 +61,7 @@ async def dashboard_kpis(settings: SettingsDep, _user: UserDep) -> dict:
 
     Derived from live MXINVENTORY data + recommendation store counts.
     """
-    from app.recommendations import store as rec_store
+    from app.recommendations import service as rec_service
 
     records = await fetch_inventory(settings)
     kpi = compute_kpi_summary(records)
@@ -72,7 +72,7 @@ async def dashboard_kpis(settings: SettingsDep, _user: UserDep) -> dict:
 
     # Count open recommendations (NEW or PENDING)
     open_recs = sum(
-        1 for r in rec_store.get_all()
+        1 for r in await rec_service.list_all()
         if r.status in ("NEW", "PENDING")
     )
 
@@ -89,56 +89,146 @@ async def working_capital_trend(settings: SettingsDep, _user: UserDep) -> list[d
     """
     Returns WorkingCapitalPoint[] shape: [{ period, value }, ...]
 
-    Derives current working capital from live MXINVENTORY, then projects a
-    12-month synthetic trend ending at the current value.  Replace with a
-    real time-series query once Maximo MXINVTRANS history is integrated.
-    """
-    from datetime import date, timedelta
+    Q1.2 — derived from actual APPLIED recommendations:
+        for each of the last 12 months, sum delta_working_capital over recs
+        whose updated_at (= APPLIED moment) falls in that month, then return
+        the rolling cumulative total.
 
+    Falls back to the legacy synthetic series when persistence is disabled
+    or when no APPLIED recommendations exist yet (otherwise the chart would
+    be flat at zero on first run).
+    """
+    from datetime import date, datetime, timedelta, timezone
+
+    real = await _working_capital_trend_from_db()
+    if real is not None:
+        return real
+
+    # Legacy fallback — synthetic series anchored to current inventory value.
     records = await fetch_inventory(settings)
     kpi = compute_kpi_summary(records)
     current_wc = kpi["total_value"] * 0.35
 
-    # Generate 12 monthly points ending at current month
     today = date.today()
     points = []
-    # Simple sinusoidal trend: gentle upward drift + seasonal dip mid-year
     for i in range(11, -1, -1):
         month_date = (today.replace(day=1) - timedelta(days=i * 30))
         period = month_date.strftime("%Y-%m")
-        # seasonal factor: slight dip in middle months
         seasonal = 1.0 - 0.04 * math.sin(math.pi * month_date.month / 12)
-        # long-term growth factor (mild decline toward current)
-        growth = 1.0 + 0.08 * (i / 11)
-        value = round(current_wc * seasonal * growth, 2)
+        growth   = 1.0 + 0.08 * (i / 11)
+        value    = round(current_wc * seasonal * growth, 2)
         points.append({"period": period, "value": value})
 
     return points
 
 
+async def _working_capital_trend_from_db():
+    """
+    Build the cumulative working-capital-release curve from the
+    recommendations table.  Returns None when persistence is disabled OR
+    when no APPLIED rows exist (caller falls back to synthetic).
+    """
+    from app import db
+    if not db.is_enabled():
+        return None
+    try:
+        from sqlalchemy import select
+        from app.models_db import Recommendation
+        from collections import defaultdict
+        from datetime import datetime, timedelta, timezone
+
+        async with db.session_scope() as s:
+            stmt = (
+                select(Recommendation.delta_working_capital,
+                       Recommendation.updated_at,
+                       Recommendation.status)
+                .where(Recommendation.status == "APPLIED")
+            )
+            rows = (await s.execute(stmt)).all()
+
+        if not rows:
+            return None
+
+        bucket: dict[str, float] = defaultdict(float)
+        for delta, ts, _status in rows:
+            month = ts.strftime("%Y-%m") if ts else "unknown"
+            bucket[month] += float(delta or 0.0)
+
+        # Build the last 12 months ending today, oldest first.
+        today = datetime.now(timezone.utc).date().replace(day=1)
+        months: list[str] = []
+        cur = today
+        for _ in range(12):
+            months.append(cur.strftime("%Y-%m"))
+            prev = cur - timedelta(days=1)
+            cur  = prev.replace(day=1)
+        months.reverse()
+
+        cumulative = 0.0
+        out: list[dict] = []
+        for m in months:
+            cumulative += bucket.get(m, 0.0)
+            out.append({"period": m, "value": round(cumulative, 2)})
+        return out
+    except Exception:
+        return None
+
+
 @router.get("/recommendations-by-status", summary="Recommendation counts by status (frontend-compatible)")
-def recommendations_by_status(_user: UserDep) -> list[dict]:
+async def recommendations_by_status(_user: UserDep) -> list[dict]:
     """
     Returns StatusMixItem[] shape: [{ status, count }, ...]
 
-    Sourced from the in-memory recommendations store.
+    Sourced from whichever store is active (DB if persistence_enabled, else
+    in-memory).
     """
-    from app.recommendations import store as rec_store
+    from app.recommendations import service as rec_service
     from collections import Counter
 
-    counts: Counter = Counter(r.status for r in rec_store.get_all())
+    counts: Counter = Counter(r.status for r in await rec_service.list_all())
     # Include all known statuses even if count is 0
     all_statuses = ["NEW", "PENDING", "APPROVED", "APPLIED", "REJECTED"]
     return [{"status": s, "count": counts.get(s, 0)} for s in all_statuses]
 
 
 @router.get("/forecast-accuracy", summary="Forecast accuracy rows (frontend-compatible)")
-def forecast_accuracy_compat(_user: UserDep) -> list[dict]:
+async def forecast_accuracy_compat(_user: UserDep) -> list[dict]:
     """
     Returns ForecastAccuracyRow[] shape: [{ itemId, description, wape, bias }, ...]
 
-    Maps seed data fields (item_num → itemId, mape → wape).
+    Q1.2 — when forecast_backtests has rows, return the latest backtest per
+    demand pattern.  Falls back to the legacy static seed otherwise.
     """
+    from app import db
+    if db.is_enabled():
+        try:
+            from sqlalchemy import select, desc
+            from app.models_db import ForecastBacktest
+            async with db.session_scope() as s:
+                # Latest run wins (we use it as a proxy for "current model").
+                run_q = (
+                    select(ForecastBacktest.run_id)
+                    .order_by(desc(ForecastBacktest.as_of))
+                    .limit(1)
+                )
+                run_id = (await s.execute(run_q)).scalar()
+                if run_id:
+                    rows_q = select(ForecastBacktest).where(ForecastBacktest.run_id == run_id)
+                    rows = (await s.execute(rows_q)).scalars().all()
+                    if rows:
+                        return [
+                            {
+                                "itemId":      r.pattern.upper(),
+                                "description": f"{r.n_items} items, model={r.model_version}",
+                                "wape":        round(r.wape, 2),
+                                "bias":        round(r.bias, 2),
+                            }
+                            for r in rows
+                        ]
+        except Exception:
+            pass
+
+    # Legacy static seed fallback.
     return [
         {
             "itemId":      row.item_num,

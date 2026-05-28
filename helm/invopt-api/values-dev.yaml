@@ -1,0 +1,24 @@
+# Dev / first-deployment overrides.
+# Use:  helm upgrade --install invopt-api ./helm/invopt-api -f values-dev.yaml
+
+replicaCount: 1
+
+image:
+  tag: dev
+
+route:
+  enabled: true
+  host: ""   # let OpenShift auto-generate from the cluster's default ingress
+
+resources:
+  requests:
+    cpu: 100m
+    memory: 256Mi
+  limits:
+    cpu: 500m
+    memory: 768Mi
+
+config:
+  APP_ENV: "development"
+  LOG_LEVEL: "DEBUG"
+  CORS_ORIGINS: "*"

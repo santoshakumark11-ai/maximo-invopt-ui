@@ -1,0 +1,11 @@
+apiVersion: v2
+name: invopt-api
+description: Inventory Optimisation Agent — API (FastAPI)
+type: application
+version: 0.3.0
+appVersion: "0.3.0"
+home: https://github.com/santoshakumark11-ai/maximo-invopt-ui
+sources:
+  - https://github.com/santoshakumark11-ai/maximo-invopt-ui
+maintainers:
+  - name: Maximo AI Practice

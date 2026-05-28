@@ -19,6 +19,7 @@ import {
 } from '@carbon/react';
 import { Logout } from '@carbon/icons-react';
 import { useAuth } from '@/auth/AuthProvider';
+import { ChatBot } from '@/components/ChatBot';
 import styles from './AppShell.module.scss';
 
 interface Props {
@@ -97,6 +98,9 @@ export function AppShell({ children }: Props) {
 
       {/* ── Page content ─────────────────────────────────────────────────── */}
       <main className={styles.shell}>{children}</main>
+
+      {/* ── Floating "Ask the planner" bot ──────────────────────────────── */}
+      <ChatBot />
     </>
   );
 }

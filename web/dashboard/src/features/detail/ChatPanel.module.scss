@@ -1,0 +1,110 @@
+.panel {
+  background: var(--cds-layer);
+  border: 1px solid var(--cds-border-subtle);
+  border-radius: 4px;
+  padding: 1rem 1.25rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.header {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.title {
+  margin: 0;
+  font-size: 1rem;
+  font-weight: 600;
+  color: #1e2761;
+  flex: 1;
+}
+
+.transcript {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  min-height: 8rem;
+  max-height: 24rem;
+  overflow-y: auto;
+  padding: 0.25rem 0;
+}
+
+.empty {
+  color: var(--cds-text-secondary);
+  font-size: 0.875rem;
+
+  p {
+    margin: 0 0 0.5rem;
+  }
+}
+
+.suggestions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.suggestion {
+  background: #eaf1fb;
+  color: #1e2761;
+  border: 1px solid #d8dfee;
+  border-radius: 16px;
+  padding: 0.25rem 0.75rem;
+  font-size: 0.8125rem;
+  cursor: pointer;
+
+  &:hover {
+    background: #d8e4f4;
+  }
+}
+
+.userTurn,
+.assistantTurn {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.userTurn {
+  align-items: flex-end;
+}
+
+.roleLabel {
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--cds-text-secondary);
+}
+
+.bubble {
+  background: var(--cds-layer-accent);
+  padding: 0.5rem 0.75rem;
+  border-radius: 8px;
+  max-width: 36rem;
+  white-space: pre-wrap;
+  line-height: 1.5;
+}
+
+.userTurn .bubble {
+  background: #00a896;
+  color: #fff;
+}
+
+.assistantTurn .bubble {
+  background: #f4f7fc;
+  color: #1f1f1f;
+}
+
+.composer {
+  display: flex;
+  gap: 0.5rem;
+  align-items: flex-end;
+}
+
+.composer > :first-child {
+  flex: 1;
+}

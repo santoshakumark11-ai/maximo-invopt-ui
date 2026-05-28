@@ -43,7 +43,14 @@ export interface TopItem {
 
 // ─── Phase 2 — Recommendations enums ────────────────────────────────────────
 
-export type RecStatus = 'NEW' | 'PENDING' | 'APPROVED' | 'APPLIED' | 'REJECTED';
+export type RecStatus =
+  | 'NEW'
+  | 'PENDING'
+  | 'APPROVED'
+  | 'APPLIED'
+  | 'REJECTED'
+  | 'FAILED'
+  | 'SUPERSEDED';
 export type RecType = 'ROP' | 'SS' | 'EOQ' | 'SUB' | 'WRITEOFF';
 export type Criticality = 'HIGH' | 'MED' | 'LOW';
 export type AuditEventType =

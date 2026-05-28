@@ -7,7 +7,8 @@ from typing import Literal, Optional
 from pydantic import BaseModel, ConfigDict
 from pydantic.alias_generators import to_camel
 
-RecStatus    = Literal["NEW", "PENDING", "APPROVED", "APPLIED", "REJECTED"]
+RecStatus    = Literal["NEW", "PENDING", "APPROVED", "APPLIED", "REJECTED",
+                       "FAILED", "SUPERSEDED"]
 RecType      = Literal["ROP", "SS", "EOQ", "SUB", "WRITEOFF"]
 Criticality  = Literal["HIGH", "MED", "LOW"]
 AuditEvent_T = Literal["CREATED", "NOTIFIED", "VIEWED", "EDITED",
